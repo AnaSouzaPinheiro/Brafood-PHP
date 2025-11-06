@@ -31,7 +31,7 @@ class ReceitaModel
                 LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
                 LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
                 LEFT JOIN categorias c ON c.id = s.id_categoria
-                ORDER BY r.titulo DESC";
+                ORDER BY r.titulo";
         /*ORDER BY r.data_criacao DESC";*/
 
         $stmt = $this->conn->prepare($query);
@@ -126,5 +126,37 @@ class ReceitaModel
         return $receita;
     }
 
+    public function listarComCategoria($idCategoria)
+    {
+        $query = "SELECT 
+                r.id,
+                r.titulo,
+                r.resumo,
+                r.dificuldade,
+                r.tempo_preparo,
+                r.tipo_tempo,
+                r.porcoes,
+                r.tipo_porcao,
+                r.qtd_fav,
+                r.data_criacao,
+                r.imagem1,
+                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                c.nome AS categoria
+            FROM receitas r
+            JOIN usuarios u ON r.id_usuario = u.id
+            LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+            LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+            LEFT JOIN categorias c ON c.id = s.id_categoria
+            WHERE c.id = :idCategoria
+            ORDER BY r.titulo ASC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':idCategoria', $idCategoria, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $result;
+    }
 
 }
