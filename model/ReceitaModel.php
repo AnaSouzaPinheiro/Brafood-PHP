@@ -66,9 +66,9 @@ class ReceitaModel
         // Ingredientes
         $sqlIngr = "SELECT ii.titulo AS titulo_ingrediente, i.descricao
                     FROM itens_ingredientes ii
-                    LEFT JOIN ingredientes i ON i.id_secao_ingrediente = ii.id_secao_ingrediente
+                    LEFT JOIN ingredientes i ON i.id_item = ii.id_item
                     WHERE ii.id_receita = :id
-                    ORDER BY ii.id_secao_ingrediente, i.id_ingrediente";
+                    ORDER BY ii.id_item, i.id_ingrediente";
 
         $stmtIngr = $this->conn->prepare($sqlIngr);
         $stmtIngr->bindParam(':id', $id);
