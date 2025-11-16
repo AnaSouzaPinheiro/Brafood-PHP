@@ -19,7 +19,9 @@ $database = new Database();
 $db = $database->getConnection();
 
 $receitaModel = new ReceitaModel($db);
-$receitas = $receitaModel->listarTodas();
+
+$pesquisa = $_GET['pesquisa'] ?? '';
+$receitas = $receitaModel->listarTodas($pesquisa);
 
 echo json_encode($receitas, JSON_UNESCAPED_UNICODE);
 ?>

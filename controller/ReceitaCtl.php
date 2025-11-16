@@ -1,4 +1,6 @@
-<?php header('Content-Type: application/json');
+<?php 
+
+header('Content-Type: application/json');
 include_once '../model/ReceitaModel.php';
 
 $receitas = new ReceitaModel($db);

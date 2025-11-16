@@ -10,37 +10,65 @@ class ReceitaModel
     }
 
     // Retorna receitas para os cards
-    public function listarTodas()
+    public function listarTodas($pesquisa = '')
     {
-        $query = "SELECT 
-                    r.id,
-                    r.titulo,
-                    r.resumo,
-                    r.dificuldade,
-                    r.tempo_preparo,
-                    r.tipo_tempo,
-                    r.porcoes,
-                    r.tipo_porcao,
-                    r.qtd_fav,
-                    r.data_criacao,
-                    r.imagem1,
-                    CONCAT(u.nome, ' ', u.sobrenome) AS autor,
-                    c.nome AS categoria
-                FROM receitas r
-                JOIN usuarios u ON r.id_usuario = u.id
-                LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
-                LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
-                LEFT JOIN categorias c ON c.id = s.id_categoria
-                ORDER BY r.titulo";
-        /*ORDER BY r.data_criacao DESC";*/
+        if (!empty($pesquisa)) {
 
-        $stmt = $this->conn->prepare($query);
+            $query = "SELECT 
+                r.id,
+                r.titulo,
+                r.resumo,
+                r.dificuldade,
+                r.tempo_hora,
+                r.tempo_min,
+                r.porcoes,
+                r.tipo_porcao,
+                r.qtd_fav,
+                r.data_criacao,
+                r.imagem1,
+                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                c.nome AS categoria
+            FROM receitas r
+            JOIN usuarios u ON r.id_usuario = u.id
+            LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+            LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+            LEFT JOIN categorias c ON c.id = s.id_categoria
+            WHERE r.titulo LIKE :pesquisa
+               OR c.nome LIKE :pesquisa
+            ORDER BY r.titulo ASC";
+
+            $stmt = $this->conn->prepare($query);
+            $param = "%{$pesquisa}%";
+            $stmt->bindParam(':pesquisa', $param, PDO::PARAM_STR);
+
+        } else {
+
+            $query = "SELECT 
+                r.id,
+                r.titulo,
+                r.resumo,
+                r.dificuldade,
+                r.tempo_hora,
+                r.tempo_min,
+                r.porcoes,
+                r.tipo_porcao,
+                r.qtd_fav,
+                r.data_criacao,
+                r.imagem1,
+                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                c.nome AS categoria
+            FROM receitas r
+            JOIN usuarios u ON r.id_usuario = u.id
+            LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+            LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+            LEFT JOIN categorias c ON c.id = s.id_categoria
+            ORDER BY r.titulo ASC";
+
+            $stmt = $this->conn->prepare($query);
+        }
+
         $stmt->execute();
-
-        // retorna um array associativo
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        return $result;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     // Retorna uma receita completa (com ingredientes e modo de preparo)
@@ -133,8 +161,8 @@ class ReceitaModel
                 r.titulo,
                 r.resumo,
                 r.dificuldade,
-                r.tempo_preparo,
-                r.tipo_tempo,
+                r.tempo_hora,
+                r.tempo_min,
                 r.porcoes,
                 r.tipo_porcao,
                 r.qtd_fav,
@@ -157,6 +185,61 @@ class ReceitaModel
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return $result;
+    }
+
+    public function excluirReceita($id)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            // 1. Deletar descrições de preparo
+            $sql = "DELETE dp
+                FROM descricoes_preparo dp
+                JOIN etapas_preparo ep ON ep.id_secao_preparo = dp.id_etapa
+                WHERE ep.id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            // 2. Deletar etapas de preparo
+            $sql = "DELETE FROM etapas_preparo WHERE id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            // 3. Deletar ingredientes
+            $sql = "DELETE i FROM ingredientes i
+                JOIN itens_ingredientes ii ON ii.id_item = i.id_item
+                WHERE ii.id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            // 4. Deletar itens_ingredientes
+            $sql = "DELETE FROM itens_ingredientes WHERE id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            // 5. Deletar relação com subcategorias
+            $sql = "DELETE FROM receita_subcategoria WHERE id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            // 6. Deletar a receita
+            $sql = "DELETE FROM receitas WHERE id = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            $this->conn->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
     }
 
 }

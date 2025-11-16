@@ -12,7 +12,7 @@ class AddingReceitaModel
     public function criarReceita($dados, $imagens)
     {
         $sql = "INSERT INTO receitas 
-            (id_usuario, titulo, resumo, dificuldade, tempo_preparo, tipo_tempo, porcoes, tipo_porcao, imagem1, imagem2, imagem3, qtd_fav, data_criacao)
+            (id_usuario, titulo, resumo, dificuldade, tempo_hora, tempo_min, porcoes, tipo_porcao, imagem1, imagem2, imagem3, qtd_fav, data_criacao)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->conn->prepare($sql);
@@ -23,8 +23,8 @@ class AddingReceitaModel
             $dados['titulo'],
             $dados['resumo'] ?? '',
             $dados['dificuldade'] ?? 1,
-            $dados['tempo_preparo'] ?? null,
-            $dados['tipo_tempo'] ?? '',
+            $dados['tempo_hora'] ?? null,
+            $dados['tempo_min'] ?? '',
             $dados['porcoes'] ?? 1,
             $dados['tipo_porcao'] ?? '',
             $imagens['imagem1'] ?? null,

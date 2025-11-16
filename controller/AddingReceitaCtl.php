@@ -26,7 +26,6 @@ class AddingReceitaCtl
             error_log("Subcategoria não enviada para a receita ID $idReceita");
         }
 
-
         // Ingredientes
         foreach ($dados['ingredientes'] ?? [] as $grupo) {
             // Cria o item do grupo de ingredientes (itens_ingredientes) e pega o id_item
@@ -38,7 +37,6 @@ class AddingReceitaCtl
             }
         }
 
-
         // Etapas
         foreach ($dados['etapas'] ?? [] as $etapa) {
             $idEtapa = $this->addRecipe->criarEtapa($idReceita, $etapa);
@@ -49,5 +47,4 @@ class AddingReceitaCtl
 
         return ["sucesso" => true, "mensagem" => "Receita criada com sucesso!", "id" => $idReceita];
     }
-
 }

@@ -20,4 +20,4 @@ $secoes = $controller->index();
 
 // Envia o JSON
 echo json_encode($secoes, JSON_UNESCAPED_UNICODE);
-exit; // garante que nada mais será enviado
+exit;
