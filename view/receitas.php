@@ -28,7 +28,7 @@ if ($num > 0) {
             "categoria" => $categoria ?? "",
             "resumo" => $resumo,
             "dificuldade" => intval($dificuldade),
-            "tempo_preparo" => $tempo_preparo,
+            "tempo_hora" => $tempo_hora,
             "porcoes" => $porcoes,
             "autor" => $autor,
             "data_criacao" => $data_criacao,
