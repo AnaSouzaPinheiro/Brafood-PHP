@@ -1,6 +1,6 @@
 <?php
 
-class AddingReceitaModel
+class AddingRecipeModel
 {
     private $conn;
 
@@ -65,9 +65,25 @@ class AddingReceitaModel
 
     public function criarIngrediente($descricao, $idItem)
     {
-        $sql = "INSERT INTO ingredientes (descricao, id_item) VALUES (?, ?)";
+        /*$sql = "INSERT INTO ingredientes (descricao, id_item) VALUES (?, ?)";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$descricao, $idItem]);
+        return $this->conn->lastInsertId();*/
+
+        // Verifica se já existe
+        $sql = "SELECT id_ingrediente FROM ingredientes WHERE id_item = ? AND descricao = ? LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$idItem, $descricao]);
+        $existe = $stmt->fetchColumn();
+
+        if ($existe) {
+            return $existe; // já existe, retorna o id
+        }
+
+        // Cria novo
+        $sql = "INSERT INTO ingredientes (id_item, descricao) VALUES (?, ?)";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$idItem, $descricao]);
         return $this->conn->lastInsertId();
     }
 

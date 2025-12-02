@@ -1,13 +1,13 @@
 <?php
-require_once __DIR__ . '/../model/AddingReceitaModel.php';
+require_once __DIR__ . '/../model/AddingRecipeModel.php';
 
-class AddingReceitaCtl
+class AddingRecipeCtl
 {
     private $addRecipe;
 
     public function __construct($db)
     {
-        $this->addRecipe = new AddingReceitaModel($db);
+        $this->addRecipe = new AddingRecipeModel($db);
     }
 
     public function adicionarReceita($dados, $imagens)

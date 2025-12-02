@@ -46,15 +46,15 @@ class UpdatingRecipeModel
     }
 
 
-    public function vincularSubcategoria($id_receita, $nomeSubcategoria)
+    public function vincularSubcategoria($id_receita, $idSubcategoria)
     {
         // 1. Buscar o ID da subcategoria pelo nome
-        $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE nome = ? LIMIT 1");
-        $stmt->execute([$nomeSubcategoria]);
+        $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE id = ? LIMIT 1");
+        $stmt->execute([$idSubcategoria]);
         $idSubcategoria = $stmt->fetchColumn();
 
         if (!$idSubcategoria) {
-            throw new Exception("Subcategoria não encontrada: " . $nomeSubcategoria);
+            throw new Exception("Subcategoria não encontrada: " . $idSubcategoria);
         }
 
         // 2. Atualizar a subcategoria vinculada à receita
@@ -112,5 +112,131 @@ class UpdatingRecipeModel
         $stmt->bindParam(':descricao', $descricao);
         $stmt->bindParam(':ordem', $ordem, PDO::PARAM_INT);
         $stmt->execute();
+    }
+
+    public function removerIngrediente($descricao, $id)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            $sql = "DELETE FROM ingredientes WHERE id_item = :idItem AND descricao = :descricao";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':idItem', $id, PDO::PARAM_INT);
+            $stmt->bindParam(':descricao', $descricao);
+            $stmt->execute();
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
+    }
+
+    public function removerEtapas($id)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            $sql = "DELETE dp
+                FROM descricoes_preparo dp
+                JOIN etapas_preparo ep ON ep.id_secao_preparo = dp.id_etapa
+                WHERE ep.id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            // 2. Deletar etapas de preparo
+            $sql = "DELETE FROM etapas_preparo WHERE id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
+    }
+
+    public function removerSubcategorias($id)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            $sql = "DELETE FROM receita_subcategoria WHERE id_receita = :id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':id', $id);
+            $stmt->execute();
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
+    }
+
+    // Remover um grupo de ingredientes e todos os seus itens
+    public function removerItemIngrediente($idItem)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            // 1. Remover todos os ingredientes do grupo
+            $sql = "DELETE FROM ingredientes WHERE id_item = :idItem";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':idItem', $idItem, PDO::PARAM_INT);
+            $stmt->execute();
+
+            // 2. Remover o próprio grupo
+            $sql = "DELETE FROM itens_ingredientes WHERE id_item = :idItem";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':idItem', $idItem, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
+    }
+
+    // Remover uma descrição específica de uma etapa
+    public function removerDescricaoEtapa($idEtapa, $descricao)
+    {
+        $sql = "DELETE FROM descricoes_preparo WHERE id_etapa = :idEtapa AND descricao = :descricao";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':idEtapa', $idEtapa, PDO::PARAM_INT);
+        $stmt->bindParam(':descricao', $descricao);
+        $stmt->execute();
+    }
+
+    // Remover uma etapa completa (etapa + descrições)
+    public function removerEtapa($idEtapa)
+    {
+        try {
+            $this->conn->beginTransaction();
+
+            // 1. Remover descrições
+            $sql = "DELETE FROM descricoes_preparo WHERE id_etapa = :idEtapa";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':idEtapa', $idEtapa, PDO::PARAM_INT);
+            $stmt->execute();
+
+            // 2. Remover a etapa
+            $sql = "DELETE FROM etapas_preparo WHERE id_secao_preparo = :idEtapa";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':idEtapa', $idEtapa, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
     }
 }

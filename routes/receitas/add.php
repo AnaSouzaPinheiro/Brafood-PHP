@@ -11,13 +11,13 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 // --- Conexão PDO ---
 require_once __DIR__ . '/../../config/Database.php';
-require_once __DIR__ . '/../../controller/AddingReceitaCtl.php';
+require_once __DIR__ . '/../../controller/AddingRecipeCtl.php';
 
 // Cria a conexão
 $db = (new Database())->getConnection();
 
 // Inicializa o Controller
-$ctl = new AddingReceitaCtl($db);
+$ctl = new AddingRecipeCtl($db);
 
 // --- Recebe os dados ---
 if (!isset($_POST['dados'])) {

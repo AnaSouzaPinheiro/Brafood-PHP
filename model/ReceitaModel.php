@@ -40,7 +40,6 @@ class ReceitaModel
             $stmt = $this->conn->prepare($query);
             $param = "%{$pesquisa}%";
             $stmt->bindParam(':pesquisa', $param, PDO::PARAM_STR);
-
         } else {
 
             $query = "SELECT 
@@ -235,11 +234,90 @@ class ReceitaModel
 
             $this->conn->commit();
             return true;
-
         } catch (Exception $e) {
             $this->conn->rollBack();
             return false;
         }
     }
 
+    public function getIngredientes($id)
+    {
+        $sqlIngr = "SELECT ii.id_item, ii.titulo AS titulo_ingrediente, i.descricao
+                    FROM itens_ingredientes ii
+                    LEFT JOIN ingredientes i ON i.id_item = ii.id_item
+                    WHERE ii.id_receita = :id
+                    ORDER BY ii.id_item, i.id_ingrediente";
+
+        $stmtIngr = $this->conn->prepare($sqlIngr);
+        $stmtIngr->bindParam(':id', $id);
+        $stmtIngr->execute();
+
+        $ingredientes = [];
+        while ($row = $stmtIngr->fetch(PDO::FETCH_ASSOC)) {
+            $titulo = $row["titulo_ingrediente"] ?: 'Sem grupo';
+            if (!isset($ingredientes[$titulo])) {
+                $ingredientes[$titulo] = [
+                    "id_item" => $row["id_item"],
+                    "titulo" => $titulo,
+                    "itens" => []
+                ];
+            }
+
+            if (!empty($row["descricao"])) {
+                $ingredientes[$titulo]["itens"][] = $row["descricao"];
+            }
+        }
+
+        return array_values($ingredientes); // agora cada grupo tem 'id_item', 'titulo' e 'itens'
+    }
+
+    public function getEtapas($id)
+    {
+        $sqlEtapas = "SELECT e.id_secao_preparo, e.titulo, e.ordem
+                  FROM etapas_preparo e
+                  WHERE e.id_receita = :id
+                  ORDER BY e.ordem ASC";
+        $stmtEtapas = $this->conn->prepare($sqlEtapas);
+        $stmtEtapas->bindParam(':id', $id);
+        $stmtEtapas->execute();
+
+        $etapas = [];
+        while ($etapa = $stmtEtapas->fetch(PDO::FETCH_ASSOC)) {
+            $idEtapa = $etapa["id_secao_preparo"];
+
+            $sqlDesc = "SELECT descricao, ordem
+                    FROM descricoes_preparo
+                    WHERE id_etapa = :idEtapa
+                    ORDER BY ordem ASC";
+            $stmtDesc = $this->conn->prepare($sqlDesc);
+            $stmtDesc->bindParam(':idEtapa', $idEtapa);
+            $stmtDesc->execute();
+            $descricoes = $stmtDesc->fetchAll(PDO::FETCH_ASSOC);
+
+            $etapas[] = [
+                "id_secao_preparo" => $idEtapa,
+                "titulo" => $etapa["titulo"],
+                "ordem" => $etapa["ordem"],
+                "descricoes" => $descricoes
+            ];
+        }
+
+        return $etapas;
+    }
+
+    public function getSubcategoria($idReceita) {
+        $sql = "SELECT s.nome
+                FROM receita_subcategoria rs
+                JOIN subcategorias s ON s.id = rs.id_subcategoria
+                WHERE rs.id_receita = :idReceita
+                LIMIT 1";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':idReceita', $idReceita, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $subcategoria = $stmt->fetchColumn();
+
+        return $subcategoria ?: null;
+    }
 }
