@@ -16,24 +16,26 @@ class AddingRecipeModel
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->conn->prepare($sql);
-        $autor = !empty($dados['autor']) ? (int) $dados['autor'] : 1;
 
-        $stmt->execute([
-            $autor,
-            $dados['titulo'],
-            $dados['resumo'] ?? '',
-            $dados['dificuldade'] ?? 1,
-            $dados['tempo_hora'] ?? null,
-            $dados['tempo_min'] ?? '',
-            $dados['porcoes'] ?? 1,
-            $dados['tipo_porcao'] ?? '',
-            $imagens['imagem1'] ?? null,
-            $imagens['imagem2'] ?? null,
-            $imagens['imagem3'] ?? null,
-            $dados['qtd_fav'] ?? 0,
-            $dados['data_criacao'] ?? date('Y-m-d H:i:s')
-        ]);
-
+        if (!empty($dados['autor'])) {
+            $stmt->execute([
+                $dados['autor'],
+                $dados['titulo'],
+                $dados['resumo'] ?? '',
+                $dados['dificuldade'] ?? 1,
+                $dados['tempo_hora'] ?? null,
+                $dados['tempo_min'] ?? '',
+                $dados['porcoes'] ?? 1,
+                $dados['tipo_porcao'] ?? '',
+                $imagens['imagem1'] ?? null,
+                $imagens['imagem2'] ?? null,
+                $imagens['imagem3'] ?? null,
+                $dados['qtd_fav'] ?? 0,
+                $dados['data_criacao'] ?? date('Y-m-d H:i:s')
+            ]);
+        } else {
+            die("Sen ID do usuário.");
+        }
 
         // retorna o id da nova receita
         return $this->conn->lastInsertId();

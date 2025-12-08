@@ -70,6 +70,36 @@ class ReceitaModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function listByUser($idUser)
+    {
+        $query = "SELECT 
+                r.id,
+                r.titulo,
+                r.resumo,
+                r.dificuldade,
+                r.tempo_hora,
+                r.tempo_min,
+                r.porcoes,
+                r.tipo_porcao,
+                r.qtd_fav,
+                r.data_criacao,
+                r.imagem1,
+                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                c.nome AS categoria
+            FROM receitas r
+            JOIN usuarios u ON r.id_usuario = u.id
+            LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+            LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+            LEFT JOIN categorias c ON c.id = s.id_categoria
+            WHERE u.id = :idUser
+            ORDER BY r.titulo ASC";
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':idUser', $idUser, PDO::PARAM_STR);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     // Retorna uma receita completa (com ingredientes e modo de preparo)
     public function buscarPorId($id)
     {
@@ -305,7 +335,8 @@ class ReceitaModel
         return $etapas;
     }
 
-    public function getSubcategoria($idReceita) {
+    public function getSubcategoria($idReceita)
+    {
         $sql = "SELECT s.nome
                 FROM receita_subcategoria rs
                 JOIN subcategorias s ON s.id = rs.id_subcategoria
