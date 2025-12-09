@@ -17,13 +17,14 @@ class UpdatingRecipeModel
         }
 
         $sql = "UPDATE receitas 
-            SET titulo = :titulo, resumo = :resumo, dificuldade = :dificuldade, 
-                tempo_hora = :tempo_hora, tempo_min = :tempo_min, 
-                porcoes = :porcoes, tipo_porcao = :tipo_porcao, 
-                imagem1 = :imagem1, imagem2 = :imagem2, imagem3 = :imagem3
-            WHERE id_usuario = :idUser AND id = :id";
+        SET titulo = :titulo, resumo = :resumo, dificuldade = :dificuldade, 
+            tempo_hora = :tempo_hora, tempo_min = :tempo_min, 
+            porcoes = :porcoes, tipo_porcao = :tipo_porcao, 
+            imagem1 = :imagem1, imagem2 = :imagem2, imagem3 = :imagem3
+        WHERE id_usuario = :idUser AND id = :id";
 
         $stmt = $this->conn->prepare($sql);
+
 
         // binds normais
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -46,28 +47,33 @@ class UpdatingRecipeModel
     }
 
 
-    public function vincularSubcategoria($id_receita, $idSubcategoria)
+    public function vincularSubcategoria($id_receita, $novaSubcategoria)
     {
         // 1. Buscar o ID da subcategoria pelo nome
         $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE id = ? LIMIT 1");
-        $stmt->execute([$idSubcategoria]);
+        $stmt->execute([$novaSubcategoria]);
         $idSubcategoria = $stmt->fetchColumn();
 
         if (!$idSubcategoria) {
-            throw new Exception("Subcategoria não encontrada: " . $idSubcategoria);
+            throw new Exception("Subcategoria não encontrada: " . $novaSubcategoria);
         }
 
-        // 2. Atualizar a subcategoria vinculada à receita
-        $sql = "UPDATE receita_subcategoria 
-        SET id_subcategoria = :id_subcategoria 
-        WHERE id_receita = :id_receita
-        ";
+        // 2. Verifica se já existe vínculo
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM receita_subcategoria WHERE id_receita = ?");
+        $stmt->execute([$id_receita]);
+        $existe = $stmt->fetchColumn();
+
+        if ($existe) {
+            // Atualiza
+            $sql = "UPDATE receita_subcategoria SET id_subcategoria = :id_subcategoria WHERE id_receita = :id_receita";
+        } else {
+            // Cria
+            $sql = "INSERT INTO receita_subcategoria (id_receita, id_subcategoria) VALUES (:id_receita, :id_subcategoria)";
+        }
 
         $stmt = $this->conn->prepare($sql);
-
         $stmt->bindParam(':id_receita', $id_receita, PDO::PARAM_INT);
         $stmt->bindParam(':id_subcategoria', $idSubcategoria, PDO::PARAM_INT);
-
         $stmt->execute();
     }
 

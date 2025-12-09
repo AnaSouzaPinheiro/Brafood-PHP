@@ -13,7 +13,13 @@ class LoginModel
     {
         // validação básica da senha
         $erros = $this->validarSenha($senha);
-        if (!empty($erros)) return ['success' => false, 'errors' => $erros];
+
+        // filtra apenas os erros reais
+        $errosFiltrados = array_filter($erros);
+
+        if (!empty($errosFiltrados)) {
+            return ['success' => false, 'errors' => $errosFiltrados];
+}
 
         // verificar se email existe
         $stmt = $this->conn->prepare("SELECT id FROM usuarios WHERE email = :email");
@@ -51,12 +57,14 @@ class LoginModel
     // Validação da senha
     private function validarSenha($senha)
     {
-        $erros = [];
-        if (strlen($senha) < 8) $erros[] = "A senha deve ter no mínimo 8 caracteres.";
-        if (!preg_match('/[0-9]/', $senha)) $erros[] = "A senha deve conter pelo menos 1 dígito.";
-        if (!preg_match('/[a-z]/', $senha)) $erros[] = "A senha deve conter pelo menos 1 letra minúscula.";
-        if (!preg_match('/[A-Z]/', $senha)) $erros[] = "A senha deve conter pelo menos 1 letra maiúscula.";
-        if (!preg_match('/[!@#$]/', $senha)) $erros[] = "A senha deve conter pelo menos 1 carácter especial (! @ # $).";
+        $erros = [null, null, null, null, null];
+
+        if (strlen($senha) < 8 || empty($senha)) $erros[0] = "A senha deve ter no mínimo 8 caracteres.";
+        if (!preg_match('/[0-9]/', $senha)) $erros[1] = "A senha deve conter pelo menos 1 dígito.";
+        if (!preg_match('/[a-z]/', $senha)) $erros[2] = "A senha deve conter pelo menos 1 letra minúscula.";
+        if (!preg_match('/[A-Z]/', $senha)) $erros[3] = "A senha deve conter pelo menos 1 letra maiúscula.";
+        if (!preg_match('/[!@#$.?&()+-]/', $senha)) $erros[4] = "A senha deve conter pelo menos 1 carácter especial (! @ # $).";
+
         return $erros;
     }
 

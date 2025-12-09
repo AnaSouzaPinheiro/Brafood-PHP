@@ -27,6 +27,15 @@ if (!isset($_GET['id'])) {
 }
 
 $id = intval($_GET['id']);
+$ordenar = $_GET['ordenar'] ?? 'nome';
+
+$subcategorias = [];
+if (isset($_GET['subcategorias'])) {
+    // Pode vir string ou array
+    $subcategorias = is_array($_GET['subcategorias'])
+        ? $_GET['subcategorias']
+        : explode(',', $_GET['subcategorias']);
+}
 
 if (!$categoriaModel->verificarCategoriaPorId($id)) {
     echo json_encode(["mensagem" => "Categoria não encontrada."]);
@@ -34,5 +43,5 @@ if (!$categoriaModel->verificarCategoriaPorId($id)) {
     exit;
 }
 
-$receitas = $receitaModel->listarComCategoria($id);
+$receitas = $receitaModel->listarComCategoria($id, $ordenar, $subcategorias);
 echo json_encode($receitas);

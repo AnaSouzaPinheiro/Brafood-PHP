@@ -29,7 +29,7 @@ if (isset($data['nome'], $data['email'], $data['senha'], $data['confirmarSenha']
     $senha = $data['senha'];
     $confirmarSenha = $data['confirmarSenha'];
 
-    if (!$nome || !$email || !$senha || !$confirmarSenha) {
+    if (!$nome || !$email) {
         http_response_code(400);
         echo json_encode(["success" => false, "message" => "Todos os campos são obrigatórios."]);
         exit;

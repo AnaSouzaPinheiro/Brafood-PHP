@@ -68,15 +68,19 @@ class CategoriaModel
     }
 
     public function verificarCategoriaPorId($id)
-{
-    $query = "SELECT id FROM categorias WHERE id = :id LIMIT 1";
-    $stmt = $this->conn->prepare($query);
-    $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-    $stmt->execute();
+    {
+        $query = "SELECT id FROM categorias WHERE id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
 
-    return $stmt->rowCount() > 0;
-}
+        return $stmt->rowCount() > 0;
+    }
 
-
-
+    public function orderByFilter ($option) {
+        $query = "SELECT id FROM categorias WHERE id = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':option', $option, PDO::PARAM_INT);
+        $stmt->execute();
+    }
 }

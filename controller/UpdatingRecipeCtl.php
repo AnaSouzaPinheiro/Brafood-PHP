@@ -37,14 +37,14 @@ class UpdatingRecipeCtl
         // 2. Subcategoria — criar, atualizar ou remover
         $subcategoriaAtual = $this->receitaModel->getSubcategoria($id); // retorna nome ou null
         $novaSubcategoria = $dados['subcategoria'] ?? null;
-
+        
         if ($subcategoriaAtual && !$novaSubcategoria) {
             // tinha antes, agora não → remove
             $this->model->removerSubcategorias($id);
-        } elseif (!$subcategoriaAtual && $novaSubcategoria) {
+        } else if (!$subcategoriaAtual && $novaSubcategoria) {
             // não tinha antes, agora tem → cria
             $this->model->vincularSubcategoria($id, $novaSubcategoria);
-        } elseif ($subcategoriaAtual && $novaSubcategoria && $subcategoriaAtual !== $novaSubcategoria) {
+        } else if ($subcategoriaAtual && $novaSubcategoria && $subcategoriaAtual !== $novaSubcategoria) {
             // mudou → atualiza
             $this->model->removerSubcategorias($id);
             $this->model->vincularSubcategoria($id, $novaSubcategoria);

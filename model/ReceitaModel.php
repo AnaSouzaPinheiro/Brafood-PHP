@@ -183,9 +183,10 @@ class ReceitaModel
         return $receita;
     }
 
-    public function listarComCategoria($idCategoria)
+    public function listarComCategoria($idCategoria, $ordenar = 'nome', $subcategorias = [])
     {
-        $query = "SELECT 
+        $query = "
+            SELECT 
                 r.id,
                 r.titulo,
                 r.resumo,
@@ -198,22 +199,73 @@ class ReceitaModel
                 r.data_criacao,
                 r.imagem1,
                 CONCAT(u.nome, ' ', u.sobrenome) AS autor,
-                c.nome AS categoria
+                c.nome AS categoria,
+
+                -- 🔄 Compatível com MySQL 5.7/MariaDB
+                IFNULL(
+                    CONCAT(
+                        '[',
+                        GROUP_CONCAT(
+                            CONCAT(
+                                '{',
+                                '\"id\":', s.id, ',',
+                                '\"nome\":\"', REPLACE(s.nome, '\"', '\\\"'), '\"',
+                                '}'
+                            )
+                            SEPARATOR ','
+                        ),
+                        ']'
+                    ),
+                    '[]'
+                ) AS subcategorias
+
             FROM receitas r
             JOIN usuarios u ON r.id_usuario = u.id
             LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
             LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
             LEFT JOIN categorias c ON c.id = s.id_categoria
             WHERE c.id = :idCategoria
-            ORDER BY r.titulo ASC";
+        ";
+
+        // 🔍 Filtro de subcategorias
+        if (!empty($subcategorias)) {
+            $placeholders = implode(',', array_fill(0, count($subcategorias), '?'));
+            $query .= " AND s.id IN ($placeholders)";
+        }
+
+        $query .= " GROUP BY r.id";
+
+        // 🔽 Ordenação
+        switch ($ordenar) {
+            case "mais_novos":
+                $query .= " ORDER BY r.data_criacao DESC";
+                break;
+            case "mais_antigos":
+                $query .= " ORDER BY r.data_criacao ASC";
+                break;
+            case "mais_favoritos":
+                $query .= " ORDER BY r.qtd_fav DESC";
+                break;
+            case "nome":
+            default:
+                $query .= " ORDER BY r.titulo ASC";
+                break;
+        }
 
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':idCategoria', $idCategoria, PDO::PARAM_INT);
+
+        // Bind fixo
+        $stmt->bindValue(':idCategoria', $idCategoria, PDO::PARAM_INT);
+
+        // Bind dinâmico das subcategorias
+        $i = 1;
+        foreach ($subcategorias as $sub) {
+            $stmt->bindValue($i, $sub, PDO::PARAM_INT);
+            $i++;
+        }
+
         $stmt->execute();
-
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        return $result;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function excluirReceita($id)
