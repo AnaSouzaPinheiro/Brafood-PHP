@@ -104,7 +104,7 @@ class ReceitaModel
     public function buscarPorId($id)
     {
         // Dados básicos da receita
-        $sql = "SELECT r.*, CONCAT(u.nome, ' ', u.sobrenome) AS autor, c.nome AS categoria
+        $sql = "SELECT r.*, CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor, u.foto_perfil, c.nome AS categoria
                 FROM receitas r
                 JOIN usuarios u ON r.id_usuario = u.id
                 LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
