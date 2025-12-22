@@ -1,24 +1,30 @@
 <?php
 require_once __DIR__ . '/../model/SecaoCarrossel.php';
 
-class SecaoCarrosselCtl {
+class SecaoCarrosselCtl
+{
     private $model;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->model = new SecaoCarrossel();
     }
 
     // Pega todas as seções com suas receitas
-    public function index() {
+    public function index()
+    {
         $secoes = $this->model->getAllSecoes();
+
         foreach ($secoes as &$secao) {
-            $secao['receitas'] = $this->model->getReceitasBySecao($secao['id']);
+            $secao['receitas'] = $this->model->getReceitasDaSecao($secao);
         }
+
         return $secoes;
     }
 
     // Criar seção + vincular receitas
-    public function create($data) {
+    public function create($data)
+    {
         $secao_id = $this->model->createSecao(
             $data['titulo'],
             $data['url_fundo'] ?? null,
@@ -36,7 +42,8 @@ class SecaoCarrosselCtl {
     }
 
     // Atualiza uma seção (opcional)
-    public function update($id, $data) {
+    public function update($id, $data)
+    {
         $this->model->updateSecao(
             $id,
             $data['titulo'] ?? null,
@@ -54,7 +61,8 @@ class SecaoCarrosselCtl {
     }
 
     // Deletar seção
-    public function delete($id) {
+    public function delete($id)
+    {
         $this->model->deleteSecao($id);
     }
 }

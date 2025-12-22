@@ -51,8 +51,12 @@ if (isset($data['email'], $data['senha'])) {
     $senha = $data['senha'];
 
     if (!$email || !$senha) {
+        $msg = !$email && !$senha
+            ? "Email e senha são obrigatórios."
+            : (!$email ? "Preencha o e-mail." : "Preencha a senha.");
+
         http_response_code(400);
-        echo json_encode(["success" => false, "message" => "Email e senha são obrigatórios."]);
+        echo json_encode(["success" => false, "message" => $msg]);
         exit;
     }
 
