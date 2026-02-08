@@ -77,18 +77,48 @@ class SecaoCarrossel
         ]);
     }
 
-    public function updateSecao()
-    {
+    public function updateSecao() {}
 
+    public function clearReceitasFromSecao() {}
+
+    public function deleteSecao() {}
+
+    private function getReceitasAleatorias($limit = 6)
+    {
+        $stmt = $this->pdo->prepare("
+        SELECT 
+            r.id,
+            r.titulo,
+            r.resumo,
+            r.imagem1,
+            r.qtd_fav,
+            c.nome AS categoria
+        FROM receitas r
+        LEFT JOIN receita_subcategoria rs 
+            ON rs.id_receita = r.id
+        LEFT JOIN subcategorias s 
+            ON s.id = rs.id_subcategoria
+        LEFT JOIN categorias c 
+            ON c.id = s.id_categoria
+        ORDER BY RAND()
+        LIMIT :limit
+    ");
+
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function clearReceitasFromSecao()
+
+    public function getReceitasDaSecao($secao)
     {
+        // CASO 1: categoria e subcategoria NULAS → receitas aleatórias
+        if (empty($secao['id_categoria']) && empty($secao['id_subcategoria'])) {
+            return $this->getReceitasAleatorias(6);
+        }
 
-    }
-
-    public function deleteSecao()
-    {
-
+        // CASO 2: receitas vinculadas normalmente
+        return $this->getReceitasBySecao($secao['id']);
     }
 }

@@ -2,6 +2,11 @@
 require_once '../config/Database.php';
 require_once '../model/LoginModel.php';
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php-error.log');
+
 // CORS
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");

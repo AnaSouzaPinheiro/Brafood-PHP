@@ -1,10 +1,14 @@
 <?php
-header("Content-Type: application/json; charset=UTF-8");
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php-error.log');
 
 // Habilita CORS
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json; charset=UTF-8");
 
 include_once '../config/Database.php';
 include_once '../model/ReceitaModel.php';

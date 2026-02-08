@@ -1,12 +1,14 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/php-error.log');
 
-header("Content-Type: application/json; charset=UTF-8");
-
-// Habilita CORS
+// CORS
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
+header("Content-Type: application/json; charset=UTF-8");
 
 include_once '../config/Database.php';
 include_once '../model/CategoriaModel.php';
@@ -18,8 +20,6 @@ $db = $database->getConnection();
 $categoriaModel = new CategoriaModel($db);
 $receitaModel = new ReceitaModel($db);
 
-header("Content-Type: application/json; charset=UTF-8");
-
 if (!isset($_GET['id'])) {
     echo json_encode(["mensagem" => "ID da categoria não informado."]);
     http_response_code(400);
@@ -30,8 +30,8 @@ $id = intval($_GET['id']);
 $ordenar = $_GET['ordenar'] ?? 'nome';
 
 $subcategorias = [];
+
 if (isset($_GET['subcategorias'])) {
-    // Pode vir string ou array
     $subcategorias = is_array($_GET['subcategorias'])
         ? $_GET['subcategorias']
         : explode(',', $_GET['subcategorias']);

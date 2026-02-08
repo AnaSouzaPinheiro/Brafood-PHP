@@ -224,13 +224,21 @@ class ReceitaModel
             LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
             LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
             LEFT JOIN categorias c ON c.id = s.id_categoria
-            WHERE c.id = :idCategoria
+            WHERE c.id = ?
         ";
 
         // 🔍 Filtro de subcategorias
         if (!empty($subcategorias)) {
             $placeholders = implode(',', array_fill(0, count($subcategorias), '?'));
-            $query .= " AND s.id IN ($placeholders)";
+
+            $query .= "
+                AND EXISTS (
+                    SELECT 1 
+                    FROM receita_subcategoria rs2
+                    WHERE rs2.id_receita = r.id
+                    AND rs2.id_subcategoria IN ($placeholders)
+                )
+            ";
         }
 
         $query .= " GROUP BY r.id";
@@ -254,20 +262,21 @@ class ReceitaModel
 
         $stmt = $this->conn->prepare($query);
 
-        // Bind fixo
-        $stmt->bindValue(':idCategoria', $idCategoria, PDO::PARAM_INT);
+        $index = 1;
 
-        // Bind dinâmico das subcategorias
-        $i = 1;
+        // categoria
+        $stmt->bindValue($index, $idCategoria, PDO::PARAM_INT);
+        $index++;
+
+        // subcategorias
         foreach ($subcategorias as $sub) {
-            $stmt->bindValue($i, $sub, PDO::PARAM_INT);
-            $i++;
+            $stmt->bindValue($index, $sub, PDO::PARAM_INT);
+            $index++;
         }
 
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
     public function excluirReceita($id)
     {
         try {
