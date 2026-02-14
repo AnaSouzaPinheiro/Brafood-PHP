@@ -185,98 +185,103 @@ class ReceitaModel
 
     public function listarComCategoria($idCategoria, $ordenar = 'nome', $subcategorias = [])
     {
-        $query = "
-            SELECT 
-                r.id,
-                r.titulo,
-                r.resumo,
-                r.dificuldade,
-                r.tempo_hora,
-                r.tempo_min,
-                r.porcoes,
-                r.tipo_porcao,
-                r.qtd_fav,
-                r.data_criacao,
-                r.imagem1,
-                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
-                c.nome AS categoria,
+        $ordenacoes = [
+            'mais_novos'      => 'r.data_criacao DESC',
+            'mais_antigos'   => 'r.data_criacao ASC',
+            'mais_favoritos' => 'r.qtd_fav DESC',
+            'nome'           => 'r.titulo ASC'
+        ];
 
-                -- 🔄 Compatível com MySQL 5.7/MariaDB
-                IFNULL(
-                    CONCAT(
-                        '[',
-                        GROUP_CONCAT(
-                            CONCAT(
-                                '{',
-                                '\"id\":', s.id, ',',
-                                '\"nome\":\"', REPLACE(s.nome, '\"', '\\\"'), '\"',
-                                '}'
-                            )
-                            SEPARATOR ','
-                        ),
-                        ']'
-                    ),
-                    '[]'
-                ) AS subcategorias
+        $orderBy = $ordenacoes[$ordenar] ?? $ordenacoes['nome'];
 
-            FROM receitas r
-            JOIN usuarios u ON r.id_usuario = u.id
-            LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
-            LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
-            LEFT JOIN categorias c ON c.id = s.id_categoria
-            WHERE c.id = ?
-        ";
+        $sql = "
+        SELECT 
+            r.id,
+            r.titulo,
+            r.resumo,
+            r.dificuldade,
+            r.tempo_hora,
+            r.tempo_min,
+            r.porcoes,
+            r.tipo_porcao,
+            r.qtd_fav,
+            r.data_criacao,
+            r.imagem1,
+            CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+            c.nome AS categoria,
+            s.id   AS sub_id,
+            s.nome AS sub_nome
+        FROM receitas r
+        JOIN usuarios u ON u.id = r.id_usuario
+        LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+        LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+        LEFT JOIN categorias c ON c.id = s.id_categoria
+        WHERE c.id = :categoria
+    ";
 
-        // 🔍 Filtro de subcategorias
+        $params = [
+            ':categoria' => $idCategoria
+        ];
+
         if (!empty($subcategorias)) {
-            $placeholders = implode(',', array_fill(0, count($subcategorias), '?'));
+            $placeholders = [];
 
-            $query .= "
-                AND EXISTS (
-                    SELECT 1 
-                    FROM receita_subcategoria rs2
-                    WHERE rs2.id_receita = r.id
-                    AND rs2.id_subcategoria IN ($placeholders)
-                )
-            ";
+            foreach ($subcategorias as $i => $sub) {
+                $key = ":sub{$i}";
+                $placeholders[] = $key;
+                $params[$key] = (int)$sub;
+            }
+
+            $sql .= "
+            AND EXISTS (
+                SELECT 1
+                FROM receita_subcategoria rs2
+                WHERE rs2.id_receita = r.id
+                AND rs2.id_subcategoria IN (" . implode(',', $placeholders) . ")
+            )
+        ";
         }
 
-        $query .= " GROUP BY r.id";
+        $sql .= " ORDER BY $orderBy";
 
-        // 🔽 Ordenação
-        switch ($ordenar) {
-            case "mais_novos":
-                $query .= " ORDER BY r.data_criacao DESC";
-                break;
-            case "mais_antigos":
-                $query .= " ORDER BY r.data_criacao ASC";
-                break;
-            case "mais_favoritos":
-                $query .= " ORDER BY r.qtd_fav DESC";
-                break;
-            case "nome":
-            default:
-                $query .= " ORDER BY r.titulo ASC";
-                break;
-        }
+        $stmt = $this->conn->prepare($sql);
 
-        $stmt = $this->conn->prepare($query);
-
-        $index = 1;
-
-        // categoria
-        $stmt->bindValue($index, $idCategoria, PDO::PARAM_INT);
-        $index++;
-
-        // subcategorias
-        foreach ($subcategorias as $sub) {
-            $stmt->bindValue($index, $sub, PDO::PARAM_INT);
-            $index++;
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
         }
 
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->organizarSubcategorias($rows);
     }
+
+
+    private function organizarSubcategorias($rows)
+    {
+        $receitas = [];
+
+        foreach ($rows as $row) {
+            $id = $row['id'];
+
+            if (!isset($receitas[$id])) {
+                $receitas[$id] = $row;
+                $receitas[$id]['subcategorias'] = [];
+            }
+
+            if ($row['sub_id']) {
+                $receitas[$id]['subcategorias'][] = [
+                    'id'   => $row['sub_id'],
+                    'nome' => $row['sub_nome']
+                ];
+            }
+
+            unset($receitas[$id]['sub_id'], $receitas[$id]['sub_nome']);
+        }
+
+        return array_values($receitas);
+    }
+
     public function excluirReceita($id)
     {
         try {
