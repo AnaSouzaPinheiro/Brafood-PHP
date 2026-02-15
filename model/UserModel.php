@@ -2,7 +2,7 @@
 class UserModel
 {
     private $conn;
-    private $table = "receitas";
+    private $table = "usuarios";
 
     public function __construct($db)
     {
@@ -24,4 +24,29 @@ class UserModel
         return $usuario;
     }
 
+    public function editarUsuario ($id, $nome, $sobrenome, $apelido, $email, $genero, $bio, $foto_perfil) 
+    {
+        $sql = 'UPDATE usuarios
+                SET nome = :nome,
+                    sobrenome = :sobrenome,
+                    apelido = :apelido,
+                    email = :email,
+                    genero = :genero,
+                    bio = :bio,
+                    foto_perfil = :foto_perfil
+                WHERE id = :id';
+
+        $stmt = $this->conn->prepare($sql);
+
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':nome', $nome);
+        $stmt->bindParam(':sobrenome', $sobrenome);
+        $stmt->bindParam(':apelido', $apelido);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':genero', $genero);
+        $stmt->bindParam(':bio', $bio);
+        $stmt->bindParam(':foto_perfil', $foto_perfil);
+
+        $stmt->execute();
+    }
 }

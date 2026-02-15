@@ -19,7 +19,7 @@ class LoginModel
 
         if (!empty($errosFiltrados)) {
             return ['success' => false, 'errors' => $errosFiltrados];
-}
+        }
 
         // verificar se email existe
         $stmt = $this->conn->prepare("SELECT id FROM usuarios WHERE email = :email");
@@ -105,11 +105,22 @@ class LoginModel
             return ["success" => false, "message" => "As senhas não coincidem."];
         }
 
+        // validação básica da senha
+        $erros = $this->validarSenha($senha);
+
+        // filtra apenas os erros reais
+        $errosFiltrados = array_filter($erros);
+
+        if (!empty($errosFiltrados)) {
+            return ['success' => false, 'errors' => $errosFiltrados];
+        }
+
+
         $stmt = $this->conn->prepare("
-        SELECT id FROM usuarios
-        WHERE token_recuperacao = :token
-        AND token_expira > NOW()
-    ");
+                SELECT id FROM usuarios
+                WHERE token_recuperacao = :token
+                AND token_expira > NOW()
+            ");
         $stmt->bindParam(':token', $token);
         $stmt->execute();
 

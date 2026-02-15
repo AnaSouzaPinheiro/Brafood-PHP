@@ -27,7 +27,7 @@ if ($id > 0) {
         echo json_encode($user, JSON_UNESCAPED_UNICODE);
     } else {
         http_response_code(404);
-        echo json_encode(["mensagem" => "Userário não encontrada."]);
+        echo json_encode(["mensagem" => "Usuário não encontrada."]);
     }
 } else {
     http_response_code(400);
