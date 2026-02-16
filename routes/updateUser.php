@@ -30,7 +30,7 @@ $dados = json_decode($_POST['dados'], true);
 // --- Upload das imagens ---
 $imagens = [];
 $uploadDir = __DIR__ . '../uploads/users';
-$baseUrl = "http://localhost/BraFood-Angular-PHP/BraFood-PHP/uploads/users/";
+$baseUrl = "http://localhost:8080/BraFood-Angular-PHP/BraFood-PHP/uploads/users/";
 
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
