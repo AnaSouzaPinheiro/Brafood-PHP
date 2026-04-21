@@ -11,31 +11,49 @@ class AddingRecipeModel
 
     public function criarReceita($dados, $imagens)
     {
+        // validações básicas
+        if (empty($imagens)) {
+            throw new Exception("É necessário anexar ao menos uma imagem.");
+        }
+
+        if (empty($dados['autor'])) {
+            throw new Exception("ID do usuário não informado.");
+        }
+
+        /*if (empty($dados['titulo'])) {
+            throw new Exception("O título da receita é obrigatório.");
+        }*/
+
+        // campos obrigatórios
+        $camposObrigatorios = ['titulo', 'resumo', 'dificuldade', 'porcoes', 'tipo_porcao'];
+
+        foreach ($camposObrigatorios as $campo) {
+            if (!isset($dados[$campo]) || trim($dados[$campo]) === '') {
+                throw new Exception("O campo {$campo} é obrigatório.");
+            }
+        }
+
         $sql = "INSERT INTO receitas 
             (id_usuario, titulo, resumo, dificuldade, tempo_hora, tempo_min, porcoes, tipo_porcao, imagem1, imagem2, imagem3, qtd_fav, data_criacao)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->conn->prepare($sql);
 
-        if (!empty($dados['autor'])) {
-            $stmt->execute([
-                $dados['autor'],
-                $dados['titulo'],
-                $dados['resumo'] ?? '',
-                $dados['dificuldade'] ?? 1,
-                $dados['tempo_hora'] ?? null,
-                $dados['tempo_min'] ?? '',
-                $dados['porcoes'] ?? 1,
-                $dados['tipo_porcao'] ?? '',
-                $imagens['imagem1'] ?? null,
-                $imagens['imagem2'] ?? null,
-                $imagens['imagem3'] ?? null,
-                $dados['qtd_fav'] ?? 0,
-                $dados['data_criacao'] ?? date('Y-m-d H:i:s')
-            ]);
-        } else {
-            die("Sen ID do usuário.");
-        }
+        $stmt->execute([
+            $dados['autor'],
+            $dados['titulo'],
+            $dados['resumo'] ?? '',
+            $dados['dificuldade'] ?? 1,
+            $dados['tempo_hora'] ?? null,
+            $dados['tempo_min'] ?? '',
+            $dados['porcoes'] ?? 1,
+            $dados['tipo_porcao'] ?? '',
+            $imagens['imagem1'] ?? null,
+            $imagens['imagem2'] ?? null,
+            $imagens['imagem3'] ?? null,
+            $dados['qtd_fav'] ?? 0,
+            $dados['data_criacao'] ?? date('Y-m-d H:i:s')
+        ]);
 
         // retorna o id da nova receita
         return $this->conn->lastInsertId();

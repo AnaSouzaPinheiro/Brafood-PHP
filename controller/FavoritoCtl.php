@@ -74,4 +74,24 @@ class FavoritoCtl
     {
         return $this->model->listByUser($idUser);
     }
+
+    public function getLinkWhatsApp($ingredientes, $link = '')
+    {
+        $texto = "Olá! Gostaria de compartilhar os ingredientes dessa receita com você:\n\n";
+
+        foreach ($ingredientes as $grupo) {
+            $texto .= $grupo['titulo'] . ":\n";
+
+            foreach ($grupo['itens'] as $item) {
+                $texto .= "- " . $item . "\n";
+            }
+
+            $texto .= "\n";
+        }
+
+        if (!empty($link)) {
+            $texto .= "Veja a receita completa no BraFood:\n" . $link . "\n\n";
+        }
+        return "https://wa.me/?text=" . urlencode($texto);
+    }
 }
