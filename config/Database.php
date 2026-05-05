@@ -2,7 +2,7 @@
 class Database {
     private $host = "localhost";
     private $db_name = "brafood_php";
-    private $port = 3307;
+    private $port = 3306;
     private $username = "root";
     private $password = "";
     public $conn;

@@ -29,8 +29,8 @@ $dados = json_decode($_POST['dados'], true);
 
 // --- Upload das imagens ---
 $imagens = [];
-$uploadDir = __DIR__ . '../uploads/users';
-$baseUrl = "http://localhost:8080/BraFood-Angular-PHP/BraFood-PHP/uploads/users/";
+$uploadDir = dirname(__DIR__) . '/uploads/users/';
+$baseUrl = "http://localhost/BraFood-Angular-PHP/BraFood-PHP/uploads/users/";
 
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
@@ -60,6 +60,8 @@ foreach (['foto_perfil'] as $campo) {
 
 // --- Chama o método de editar ---
 try {
+    $dados['foto_perfil'] = $imagens['foto_perfil'] ?? $dados['foto_perfil'] ?? null;
+
     $result = $ctl->editarUsuario($dados);
 
     error_log("Resultado da edição de usuário: " . print_r($result, true));
