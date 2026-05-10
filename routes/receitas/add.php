@@ -32,7 +32,7 @@ $imagens = [];
 // caminho físico correto (raiz do projeto + pasta uploads)
 $uploadDir = __DIR__ . '/../../uploads/receitas/';
 // URL pública correspondente
-$baseUrl = "http://localhost:8080/BraFood-Angular-PHP/BraFood-PHP/uploads/receitas/";
+$baseUrl = "http://localhost/BraFood-Angular-PHP/BraFood-PHP/uploads/receitas/";
 
 if (!file_exists($uploadDir)) {
     mkdir($uploadDir, 0777, true);

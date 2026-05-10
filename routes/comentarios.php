@@ -7,7 +7,7 @@ ini_set('display_startup_errors', 1);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/php-error.log');
 
-header("Access-Control-Allow-Origin: http://localhost:4200");
+//header("Access-Control-Allow-Origin: http://localhost:4200");
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json; charset=utf-8');
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");

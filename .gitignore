@@ -1,3 +1,9 @@
 vendor
 
 uploads
+
+.env
+
+routes/php-error.log
+
+routes/receitas/php-error.log
