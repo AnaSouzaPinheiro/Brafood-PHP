@@ -1,9 +1,36 @@
-vendor
+# Dependências
+/vendor/
 
-uploads
-
+# Variáveis de ambiente
 .env
 
+# Logs gerados em runtime
+*.log
+/logs/*.log
+php-error.log
 routes/php-error.log
-
 routes/receitas/php-error.log
+
+# Uploads gerados pelo usuário
+/uploads/
+
+# PHPUnit — resultados de execução
+.phpunit.result.cache
+.phpunit.cache/
+
+# Cobertura de código
+/coverage/
+coverage.xml
+clover.xml
+
+# XDEBUG / profiling
+cachegrind.out.*
+*.xdebug
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

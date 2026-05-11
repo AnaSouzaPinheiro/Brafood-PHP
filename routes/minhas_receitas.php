@@ -1,37 +1,22 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php-error.log');
 
-// Habilita CORS
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
+require_once __DIR__ . '/../config/cors.php';
+require_once __DIR__ . '/../config/env.php';
 
-include_once '../config/Database.php';
-include_once '../model/ReceitaModel.php';
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../controller/ReceitaCtl.php';
 
-// Se for uma requisição OPTIONS (pré-flight), retorna apenas o cabeçalho
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-$database = new Database();
-$db = $database->getConnection();
+$db = (new Database())->getConnection();
+$ctl = new ReceitaCtl($db);
 
-$receitaModel = new ReceitaModel($db);
+$idUser = isset($_GET['id'])
+    ? intval($_GET['id'])
+    : 0;
 
-$idUser = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($idUser > 0) {
-    $receitas = $receitaModel->listByUser($idUser);
-} else {
-    http_response_code(400);
-    echo json_encode(["mensagem" => "ID inválido."]);
-    exit(); // importante pra não tentar mandar $receitas depois
-}
-
-echo json_encode($receitas, JSON_UNESCAPED_UNICODE);
+$response = $ctl->listarPorUsuario($idUser);
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

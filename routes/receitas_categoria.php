@@ -1,32 +1,24 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php-error.log');
 
-// CORS
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
+require_once __DIR__ . '/../config/cors.php';
+require_once __DIR__ . '/../config/env.php';
 
-include_once '../config/Database.php';
-include_once '../model/CategoriaModel.php';
-include_once '../model/ReceitaModel.php';
-
-$database = new Database();
-$db = $database->getConnection();
-
-$categoriaModel = new CategoriaModel($db);
-$receitaModel = new ReceitaModel($db);
-
-if (!isset($_GET['id'])) {
-    echo json_encode(["mensagem" => "ID da categoria não informado."]);
-    http_response_code(400);
-    exit;
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit();
 }
 
-$id = intval($_GET['id']);
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../controller/ReceitaCtl.php';
+
+$db = (new Database())->getConnection();
+
+$ctl = new ReceitaCtl($db);
+
+$id = isset($_GET['id'])
+    ? intval($_GET['id'])
+    : null;
+
 $ordenar = $_GET['ordenar'] ?? 'nome';
 
 $subcategorias = [];
@@ -37,11 +29,10 @@ if (isset($_GET['subcategorias'])) {
         : explode(',', $_GET['subcategorias']);
 }
 
-if (!$categoriaModel->verificarCategoriaPorId($id)) {
-    echo json_encode(["mensagem" => "Categoria não encontrada."]);
-    http_response_code(404);
-    exit;
-}
+$response = $ctl->listarPorCategoria(
+    $id,
+    $ordenar,
+    $subcategorias
+);
 
-$receitas = $receitaModel->listarComCategoria($id, $ordenar, $subcategorias);
-echo json_encode($receitas);
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

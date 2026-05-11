@@ -1,36 +1,17 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php-error.log');
 
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once __DIR__ . '/../../config/cors.php';
+require_once __DIR__ . '/../../config/env.php';
 
-include_once '../../config/Database.php';
-include_once '../../model/ReceitaModel.php';
+require_once __DIR__ . '/../../config/Database.php';
+require_once __DIR__ . '/../../controller/ReceitaCtl.php';
 
-// Conexão
-$database = new Database();
-$db = $database->getConnection();
+$db  = (new Database())->getConnection();
+$ctl = new ReceitaCtl($db);
 
-$receitaModel = new ReceitaModel($db);
+$id = isset($_GET['id'])
+    ? intval($_GET['id'])
+    : 0;
 
-// Pega ID via GET (?id=)
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($id > 0) {
-    $receita = $receitaModel->buscarPorId($id);
-
-    if ($receita) {
-        echo json_encode($receita, JSON_UNESCAPED_UNICODE);
-    } else {
-        http_response_code(404);
-        echo json_encode(["mensagem" => "Receita não encontrada."]);
-    }
-} else {
-    http_response_code(400);
-    echo json_encode(["mensagem" => "ID inválido."]);
-}
-?>
+$response = $ctl->buscarPorId($id);
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

@@ -11,7 +11,6 @@ class UpdatingRecipeModel
 
     public function updateReceita($id, $idUser, $titulo, $resumo, $dificuldade, $tempo_hora, $tempo_min, $porcoes, $tipo_porcao, $imagem1, $imagem2, $imagem3)
     {
-        // Não deixa os dois null ao mesmo tempo
         if ($tempo_hora === null && $tempo_min === null) {
             throw new Exception("tempo_hora e tempo_min não podem ser null ao mesmo tempo.");
         }
@@ -25,14 +24,11 @@ class UpdatingRecipeModel
 
         $stmt = $this->conn->prepare($sql);
 
-
-        // binds normais
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->bindParam(':titulo', $titulo);
         $stmt->bindParam(':resumo', $resumo);
         $stmt->bindParam(':dificuldade', $dificuldade, PDO::PARAM_INT);
 
-        // binds com null seguro
         $stmt->bindValue(':tempo_hora', $tempo_hora, $tempo_hora === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $stmt->bindValue(':tempo_min', $tempo_min, $tempo_min === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
 
@@ -49,8 +45,7 @@ class UpdatingRecipeModel
 
     public function vincularSubcategoria($id_receita, $novaSubcategoria)
     {
-        // 1. Buscar o ID da subcategoria pelo nome
-        $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE id = ? LIMIT 1");
+        $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE nome = ? LIMIT 1");
         $stmt->execute([$novaSubcategoria]);
         $idSubcategoria = $stmt->fetchColumn();
 
@@ -58,16 +53,13 @@ class UpdatingRecipeModel
             throw new Exception("Subcategoria não encontrada: " . $novaSubcategoria);
         }
 
-        // 2. Verifica se já existe vínculo
         $stmt = $this->conn->prepare("SELECT COUNT(*) FROM receita_subcategoria WHERE id_receita = ?");
         $stmt->execute([$id_receita]);
         $existe = $stmt->fetchColumn();
 
         if ($existe) {
-            // Atualiza
             $sql = "UPDATE receita_subcategoria SET id_subcategoria = :id_subcategoria WHERE id_receita = :id_receita";
         } else {
-            // Cria
             $sql = "INSERT INTO receita_subcategoria (id_receita, id_subcategoria) VALUES (:id_receita, :id_subcategoria)";
         }
 
@@ -152,7 +144,6 @@ class UpdatingRecipeModel
             $stmt->bindParam(':id', $id);
             $stmt->execute();
 
-            // 2. Deletar etapas de preparo
             $sql = "DELETE FROM etapas_preparo WHERE id_receita = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
@@ -184,19 +175,16 @@ class UpdatingRecipeModel
         }
     }
 
-    // Remover um grupo de ingredientes e todos os seus itens
     public function removerItemIngrediente($idItem)
     {
         try {
             $this->conn->beginTransaction();
 
-            // 1. Remover todos os ingredientes do grupo
             $sql = "DELETE FROM ingredientes WHERE id_item = :idItem";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':idItem', $idItem, PDO::PARAM_INT);
             $stmt->execute();
 
-            // 2. Remover o próprio grupo
             $sql = "DELETE FROM itens_ingredientes WHERE id_item = :idItem";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':idItem', $idItem, PDO::PARAM_INT);
@@ -210,7 +198,6 @@ class UpdatingRecipeModel
         }
     }
 
-    // Remover uma descrição específica de uma etapa
     public function removerDescricaoEtapa($idEtapa, $descricao)
     {
         $sql = "DELETE FROM descricoes_preparo WHERE id_etapa = :idEtapa AND descricao = :descricao";
@@ -220,19 +207,16 @@ class UpdatingRecipeModel
         $stmt->execute();
     }
 
-    // Remover uma etapa completa (etapa + descrições)
     public function removerEtapa($idEtapa)
     {
         try {
             $this->conn->beginTransaction();
 
-            // 1. Remover descrições
             $sql = "DELETE FROM descricoes_preparo WHERE id_etapa = :idEtapa";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':idEtapa', $idEtapa, PDO::PARAM_INT);
             $stmt->execute();
 
-            // 2. Remover a etapa
             $sql = "DELETE FROM etapas_preparo WHERE id_secao_preparo = :idEtapa";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':idEtapa', $idEtapa, PDO::PARAM_INT);

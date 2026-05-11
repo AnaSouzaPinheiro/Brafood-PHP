@@ -1,69 +1,181 @@
 <?php
-require_once '../config/Database.php';
-require_once '../model/LoginModel.php';
 
-// Configurações de CORS
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json; charset=UTF-8");
+/**
+ * Controla autenticação: login e cadastro de usuários.
+ * Depende de LoginModel para acesso ao banco.
+ */
 
-// Responde OPTIONS
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once __DIR__ . '/../model/LoginModel.php';
 
-// --- Conexão com o banco ---
-$database = new Database();
-$db = $database->getConnection();
-$model = new LoginModel($db);
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-// Pega dados do front
-$data = json_decode(file_get_contents("php://input"), true);
+class LoginCtl
+{
+    private LoginModel $model;
 
-// --- Cadastro ---
-if (isset($data['nome'], $data['email'], $data['senha'], $data['confirmarSenha'])) {
-    $nome = $data['nome'];
-    $email = $data['email'];
-    $senha = $data['senha'];
-    $confirmarSenha = $data['confirmarSenha'];
-
-    if (!$nome || !$email) {
-        http_response_code(400);
-        echo json_encode(["success" => false, "message" => "Todos os campos são obrigatórios."]);
-        exit;
+    public function __construct($db)
+    {
+        $this->model = new LoginModel($db);
     }
 
-    if ($senha !== $confirmarSenha) {
-        echo json_encode(["success" => false, "errors" => ["As senhas não coincidem."]]);
-        exit;
+    public function login(array $data): array
+    {
+        if (empty($data['email']) || empty($data['senha'])) {
+            Logger::warn('login', 'Tentativa de login com dados incompletos', [
+                'email' => $data['email'] ?? '(vazio)'
+            ]);
+            return ['success' => false, 'message' => 'E-mail e senha são obrigatórios.'];
+        }
+
+        $result = $this->model->login($data['email'], $data['senha']);
+
+        if ($result['success']) {
+            Logger::info('login', 'Login realizado com success', [
+                'usuario_id' => $result['usuario']['id'] ?? '?',
+                'email'      => $data['email']
+            ]);
+        } else {
+            Logger::warn('login', 'Falha no login', [
+                'email'  => $data['email'],
+                'motivo' => $result['message'] ?? 'desconhecido'
+            ]);
+        }
+
+        return $result;
     }
 
-    $result = $model->cadastrar($nome, $email, $senha);
-    echo json_encode($result, JSON_UNESCAPED_UNICODE);
-    exit;
-}
+    public function cadastro(array $data): array
+    {
+        if (empty($data['email']) || empty($data['senha'])) {
+            Logger::warn('login/cadastro', 'Tentativa de cadastro com dados incompletos');
+            return ['success' => false, 'message' => 'Dados obrigatórios ausentes.'];
+        }
 
-// --- Login ---
-if (isset($data['email'], $data['senha'])) {
-    $email = $data['email'];
-    $senha = $data['senha'];
+        $result = $this->model->cadastrar(
+            $data['nome']           ?? '',
+            $data['email'],
+            $data['senha']
+        );
 
-    if (!$email || !$senha) {
-        $msg = !$email && !$senha
-            ? "Email e senha são obrigatórios."
-            : (!$email ? "Preencha o e-mail." : "Preencha a senha.");
+        if ($result['success'] ?? false) {
+            Logger::info('login/cadastro', 'Novo usuário cadastrado', [
+                'email' => $data['email']
+            ]);
+        } else {
+            Logger::warn('login/cadastro', 'Falha no cadastro', [
+                'email'  => $data['email'],
+                'motivo' => $result['message'] ?? 'desconhecido'
+            ]);
+        }
 
-        http_response_code(400);
-        echo json_encode(["success" => false, "message" => $msg]);
-        exit;
+        return $result;
     }
 
-    $result = $model->login($email, $senha);
-    echo json_encode($result, JSON_UNESCAPED_UNICODE);
-    exit;
-}
+    public function resetarSenha(array $data): array
+    {
+        if (
+            empty($data['token']) ||
+            empty($data['senha']) ||
+            empty($data['confirmarSenha'])
+        ) {
+            http_response_code(400);
 
-// Se não veio nenhum dado válido
-echo json_encode(['success' => false, 'message' => 'Dados inválidos ou incompletos.']);
+            return [
+                'success' => false,
+                'message' => 'Dados incompletos.'
+            ];
+        }
+
+        return $this->model->resetarSenha(
+            $data['token'],
+            $data['senha'],
+            $data['confirmarSenha']
+        );
+    }
+
+    public function enviarRecuperacaoSenha(array $data): array
+    {
+        if (empty($data["email"])) {
+            http_response_code(400);
+
+            return [
+                "success" => false,
+                "message" => "E-mail é obrigatório."
+            ];
+        }
+
+        $result = $this->model->gerarTokenRecuperacao(
+            $data["email"]
+        );
+
+        if (!($result["success"] ?? false)) {
+            return $result;
+        }
+
+        $token  = $result["token"];
+
+        $appUrl = rtrim(
+            $_ENV['APP_URL'] ?? 'http://localhost:4200',
+            '/'
+        );
+
+        $link = "$appUrl/resetar-senha/$token";
+
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host       = "smtp.gmail.com";
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['MAIL_USER'];
+            $mail->Password   = $_ENV['MAIL_PASS'];
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->CharSet    = 'UTF-8';
+            $mail->Port       = 587;
+
+            $mail->setFrom($_ENV['MAIL_USER'], "BraFood");
+            $mail->addAddress($data["email"]);
+
+            $mail->isHTML(true);
+
+            $mail->Subject = "Redefinição de senha — BraFood";
+
+            $mail->Body = "
+                <h2>Redefinição de senha</h2>
+                <p>Clique no link abaixo para redefinir sua senha:</p>
+                <a href='$link'>$link</a>
+                <p>Link válido por 1 hora.</p>
+            ";
+
+            $mail->send();
+
+            Logger::info(
+                "recuperacao_senha",
+                "E-mail de recuperação enviado",
+                ["email" => $data["email"]]
+            );
+
+            return [
+                "success" => true,
+                "message" => "E-mail enviado!"
+            ];
+
+        } catch (Exception $e) {
+
+            Logger::error(
+                "recuperacao_senha",
+                "Falha ao enviar e-mail de recuperação",
+                [
+                    "email" => $data["email"],
+                    "erro"  => $e->getMessage()
+                ]
+            );
+
+            return [
+                "success" => false,
+                "message" => "Erro ao enviar e-mail."
+            ];
+        }
+    }
+}

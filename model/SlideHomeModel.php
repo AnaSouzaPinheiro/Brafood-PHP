@@ -8,7 +8,6 @@ class SlideHome {
         $this->db = new Database();
     }
 
-    // Pega receitas aleatórias
     public function getRandomRecipes($limit = 5) {
         $stmt = $this->db->getConnection()->prepare(
             "SELECT id, titulo, resumo, imagem1, qtd_fav 

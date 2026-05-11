@@ -1,27 +1,20 @@
 <?php
-header("Content-Type: application/json; charset=UTF-8");
 
-// Habilita CORS
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+require_once __DIR__ . '/../config/cors.php';
+require_once __DIR__ . '/../config/env.php';
 
-include_once '../config/Database.php';
-include_once '../model/ReceitaModel.php';
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../controller/ReceitaCtl.php';
 
-// Se for uma requisição OPTIONS (pré-flight), retorna apenas o cabeçalho
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-$database = new Database();
-$db = $database->getConnection();
-
-$receitaModel = new ReceitaModel($db);
+$db = (new Database())->getConnection();
+$ctl = new ReceitaCtl($db);
 
 $pesquisa = $_GET['pesquisa'] ?? '';
-$receitas = $receitaModel->listarTodas($pesquisa);
 
-echo json_encode($receitas, JSON_UNESCAPED_UNICODE);
-?>
+$response = $ctl->listarTodas($pesquisa);
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

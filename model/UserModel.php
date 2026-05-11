@@ -2,7 +2,6 @@
 class UserModel
 {
     private $conn;
-    private $table = "usuarios";
 
     public function __construct($db)
     {

@@ -1,51 +1,80 @@
 <?php
 
-header('Content-Type: application/json');
+/**
+ * Controla a edição do perfil do usuário.
+ */
+
 require_once __DIR__ . '/../model/UserModel.php';
-require_once __DIR__ . '/../config/Database.php';
-
-$db = (new Database())->getConnection();
-$usuario = new UserModel($db);
-
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($id > 0) {
-    $usuarioData = $usuario->buscarUserPorId($id);
-    echo json_encode($usuarioData);
-} else {
-    http_response_code(400);
-    echo json_encode(["mensagem" => "ID inválido."]);
-}
-
 
 class UserCtl
 {
-    private $model;
+    private UserModel $model;
 
     public function __construct($db)
     {
         $this->model = new UserModel($db);
     }
-    public function editarUsuario($dados)
-    {
 
+    public function editarUsuario(array $dados): array
+    {
         $id = (int) $dados['id'];
 
-        $this->model->editarUsuario(
-            $id,
-            $dados['nome'],
-            $dados['sobrenome'],
-            $dados['apelido'],
-            $dados['email'],
-            $dados['genero'],
-            $dados['bio'],
-            $dados['foto_perfil'] ?? null
-        );
+        try {
+            $this->model->editarUsuario(
+                $id,
+                $dados['nome']        ?? '',
+                $dados['sobrenome']   ?? '',
+                $dados['apelido']     ?? '',
+                $dados['email']       ?? '',
+                $dados['genero']      ?? '',
+                $dados['bio']         ?? '',
+                $dados['foto_perfil'] ?? null
+            );
+
+            Logger::info('usuario/update', 'Perfil atualizado', [
+                'usuario_id' => $id
+            ]);
+
+            return [
+                'success'  => true,
+                'message' => 'Usuário editado com sucesso!',
+                'id'       => $id
+            ];
+
+        } catch (Exception $e) {
+            Logger::error('usuario/update', 'Erro ao editar perfil', [
+                'usuario_id' => $id,
+                'error'       => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    public function buscarUsuarioPorId(int $id): array
+    {
+        if ($id <= 0) {
+            http_response_code(400);
+
+            return [
+                'success' => false,
+                'message' => 'ID inválido.'
+            ];
+        }
+
+        $usuario = $this->model->buscarUserPorId($id);
+
+        if (!$usuario) {
+            http_response_code(404);
+
+            return [
+                'success' => false,
+                'message' => 'Usuário não encontrado.'
+            ];
+        }
 
         return [
-            "sucesso" => true,
-            "mensagem" => "Usuário editado com sucesso!",
-            "id" => $id
+            'success' => true,
+            'usuario' => $usuario
         ];
     }
 }

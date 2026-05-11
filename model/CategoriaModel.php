@@ -11,25 +11,25 @@ class CategoriaModel
     public function listarCategorias()
     {
         $query = "SELECT 
-                c.id AS id_categoria,
-                c.nome AS nome_categoria,
-                c.icone,
-                c.fundo,
-                c.css_class,
-                s.id AS id_subcategoria,
-                s.nome AS nome_subcategoria
-            FROM categorias c
-            LEFT JOIN subcategorias s ON s.id_categoria = c.id
-            ORDER BY 
-                CASE c.id
-                    WHEN 3 THEN 1
-                    WHEN 4 THEN 2
-                    WHEN 5 THEN 3
-                    WHEN 6 THEN 4
-                    WHEN 7 THEN 5
-                    WHEN 1 THEN 6
-                    WHEN 2 THEN 7
-                END";
+                    c.id AS id_categoria,
+                    c.nome AS nome_categoria,
+                    c.icone,
+                    c.fundo,
+                    c.css_class,
+                    s.id AS id_subcategoria,
+                    s.nome AS nome_subcategoria
+                FROM categorias c
+                LEFT JOIN subcategorias s ON s.id_categoria = c.id
+                ORDER BY 
+                    CASE c.id
+                        WHEN 3 THEN 1
+                        WHEN 4 THEN 2
+                        WHEN 5 THEN 3
+                        WHEN 6 THEN 4
+                        WHEN 7 THEN 5
+                        WHEN 1 THEN 6
+                        WHEN 2 THEN 7
+                    END";
 
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -40,7 +40,6 @@ class CategoriaModel
         foreach ($rows as $row) {
             $catId = $row['id_categoria'];
 
-            // se a categoria ainda não existe no array, cria com estrutura base
             if (!isset($categorias[$catId])) {
                 $categorias[$catId] = [
                     'id' => $row['id_categoria'],
@@ -67,20 +66,16 @@ class CategoriaModel
         return $categorias;
     }
 
-    public function verificarCategoriaPorId($id)
+    public function buscarCategoriaPorId($id)
     {
-        $query = "SELECT id FROM categorias WHERE id = :id LIMIT 1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
+        $categorias = $this->listarCategorias();
 
-        return $stmt->rowCount() > 0;
-    }
+        foreach ($categorias as $categoria) {
+            if ($categoria['id'] == $id) {
+                return $categoria;
+            }
+        }
 
-    public function orderByFilter ($option) {
-        $query = "SELECT id FROM categorias WHERE id = :id LIMIT 1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':option', $option, PDO::PARAM_INT);
-        $stmt->execute();
+        return null;
     }
 }

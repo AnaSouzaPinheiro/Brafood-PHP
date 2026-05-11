@@ -1,39 +1,23 @@
 <?php
-require_once '../config/Database.php';
-require_once '../model/LoginModel.php';
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php-error.log');
+require_once __DIR__ . '/../config/cors.php';
+require_once __DIR__ . '/../config/env.php';
 
-// CORS
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Content-Type: application/json");
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../controller/LoginCtl.php';
 
-if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") exit;
-
-$database = new Database();
-$db = $database->getConnection();
-$model = new LoginModel($db);
-
-$data = json_decode(file_get_contents("php://input"), true);
-
-if (
-    !isset($data['token']) ||
-    !isset($data['senha']) ||
-    !isset($data['confirmarSenha'])
-) {
-    echo json_encode(["success" => false, "message" => "Dados incompletos."]);
+if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
+    http_response_code(200);
     exit;
 }
 
-$result = $model->resetarSenha(
-    $data['token'],
-    $data['senha'],
-    $data['confirmarSenha']
+$db = (new Database())->getConnection();
+$ctl = new LoginCtl($db);
+
+$data = json_decode(
+    file_get_contents("php://input"),
+    true
 );
 
-echo json_encode($result, JSON_UNESCAPED_UNICODE);
+$response = $ctl->resetarSenha($data);
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

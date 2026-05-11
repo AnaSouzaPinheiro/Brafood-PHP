@@ -1,50 +1,72 @@
 <?php
+
+/**
+ * Controla a criação de novas receitas.
+ * Orquestra: dados principais, subcategoria, grupos de ingredientes e etapas de preparo.
+ */
+
 require_once __DIR__ . '/../model/AddingRecipeModel.php';
 
 class AddingRecipeCtl
 {
-    private $addRecipe;
+    private AddingRecipeModel $addRecipe;
 
     public function __construct($db)
     {
         $this->addRecipe = new AddingRecipeModel($db);
     }
 
-    public function adicionarReceita($dados, $imagens)
+    public function adicionarReceita(array $dados, array $imagens): array
     {
         if (empty($dados['titulo']) || empty($dados['categoria'])) {
-            return ["sucesso" => false, "mensagem" => "Título e categoria são obrigatórios."];
+            return ['success' => false, 'message' => 'Título e categoria são obrigatórios.'];
         }
 
-        $idReceita = $this->addRecipe->criarReceita($dados, $imagens);
+        $idUsuario = $dados['autor'] ?? null;
 
-        // Faz o vínculo com a subcategoria (receita_subcategoria)
-        $nomeSubcategoria = $dados['subcategoria'] ?? '';
-        if ($nomeSubcategoria) {
-            $this->addRecipe->vincularSubcategoria($idReceita, $nomeSubcategoria);
-        } else {
-            error_log("Subcategoria não enviada para a receita ID $idReceita");
-        }
+        try {
+            $idReceita = $this->addRecipe->criarReceita($dados, $imagens);
 
-        // Ingredientes
-        foreach ($dados['ingredientes'] ?? [] as $grupo) {
-            // Cria o item do grupo de ingredientes (itens_ingredientes) e pega o id_item
-            $idItem = $this->addRecipe->criarItemIngrediente($idReceita, $grupo['titulo']);
-
-            // Cria cada ingrediente apontando para o id_item correto
-            foreach ($grupo['itens'] ?? [] as $ingrediente) {
-                $this->addRecipe->criarIngrediente($ingrediente, $idItem);
+            // Subcategoria
+            $nomeSubcategoria = $dados['subcategoria'] ?? '';
+            if ($nomeSubcategoria) {
+                $this->addRecipe->vincularSubcategoria($idReceita, $nomeSubcategoria);
+            } else {
+                Logger::warn('receitas/add', 'Receita criada sem subcategoria', [
+                    'receita_id' => $idReceita
+                ]);
             }
-        }
 
-        // Etapas
-        foreach ($dados['etapas'] ?? [] as $etapa) {
-            $idEtapa = $this->addRecipe->criarEtapa($idReceita, $etapa);
-            foreach ($etapa['descricoes'] ?? [] as $desc) {
-                $this->addRecipe->criarDescricaoEtapa($idEtapa, $desc);
+            // Grupos de ingredientes
+            foreach ($dados['ingredientes'] ?? [] as $grupo) {
+                $idItem = $this->addRecipe->criarItemIngrediente($idReceita, $grupo['titulo']);
+                foreach ($grupo['itens'] ?? [] as $ingrediente) {
+                    $this->addRecipe->criarIngrediente($ingrediente, $idItem);
+                }
             }
-        }
 
-        return ["sucesso" => true, "mensagem" => "Receita criada com sucesso!", "id" => $idReceita];
+            // Etapas de preparo
+            foreach ($dados['etapas'] ?? [] as $etapa) {
+                $idEtapa = $this->addRecipe->criarEtapa($idReceita, $etapa);
+                foreach ($etapa['descricoes'] ?? [] as $desc) {
+                    $this->addRecipe->criarDescricaoEtapa($idEtapa, $desc);
+                }
+            }
+
+            Logger::info('receitas/add', 'Receita criada com sucesso', [
+                'usuario_id' => $idUsuario,
+                'receita_id' => $idReceita,
+                'titulo'     => $dados['titulo'] ?? '?'
+            ]);
+
+            return ['success' => true, 'message' => 'Receita criada com sucesso!', 'id' => $idReceita];
+
+        } catch (Exception $e) {
+            Logger::error('receitas/add', 'Erro ao criar receita', [
+                'usuario_id' => $idUsuario,
+                'error'       => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 }

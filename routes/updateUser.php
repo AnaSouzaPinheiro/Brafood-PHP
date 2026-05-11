@@ -1,81 +1,60 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php-error.log');
-
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type');
-
-// --- Conexão PDO ---
+require_once __DIR__ . '/../config/env.php';
+require_once __DIR__ . '/../config/cors.php';
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../controller/UserCtl.php';
 
-// Cria a conexão
-$db = (new Database())->getConnection();
-
-// Inicializa o Controller
+$db  = (new Database())->getConnection();
 $ctl = new UserCtl($db);
 
-// --- Recebe os dados ---
 if (!isset($_POST['dados'])) {
-    echo json_encode(['sucesso' => false, 'mensagem' => 'Nenhum dado recebido']);
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Nenhum dado recebido']);
     exit;
 }
 
 $dados = json_decode($_POST['dados'], true);
-
-// --- Upload das imagens ---
-$imagens = [];
+$protocol  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$uploadUrl = rtrim($_ENV['API_UPLOAD_URL'] ?? "$protocol://{$_SERVER['HTTP_HOST']}/uploads", '/');
 $uploadDir = dirname(__DIR__) . '/uploads/users/';
-$baseUrl = "http://localhost/BraFood-Angular-PHP/BraFood-PHP/uploads/users/";
 
 if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
+    mkdir($uploadDir, 0755, true);
 }
 
-// percorre imagem1, imagem2 e imagem3
-foreach (['foto_perfil'] as $campo) {
+$imagens = [];
 
-    // se veio arquivo novo → substitui
+foreach (['foto_perfil'] as $campo) {
     if (!empty($_FILES[$campo]['tmp_name'])) {
-        $ext = pathinfo($_FILES[$campo]['name'], PATHINFO_EXTENSION);
+        $ext      = strtolower(pathinfo($_FILES[$campo]['name'], PATHINFO_EXTENSION));
         $novoNome = uniqid("usuario_") . "." . $ext;
-        $destino = $uploadDir . $novoNome;
+        $destino  = $uploadDir . $novoNome;
 
         if (move_uploaded_file($_FILES[$campo]['tmp_name'], $destino)) {
-            $imagens[$campo] = $baseUrl . $novoNome;
+            $imagens[$campo] = "$uploadUrl/users/$novoNome";
         } else {
             $imagens[$campo] = null;
         }
-
-        // se NÃO veio arquivo novo → mantém a imagem antiga
     } else {
         $imagens[$campo] = $dados[$campo] ?? null;
     }
 }
 
-
-// --- Chama o método de editar ---
 try {
     $dados['foto_perfil'] = $imagens['foto_perfil'] ?? $dados['foto_perfil'] ?? null;
 
     $result = $ctl->editarUsuario($dados);
 
-    error_log("Resultado da edição de usuário: " . print_r($result, true));
     ob_clean();
     echo json_encode($result);
     exit;
 } catch (Exception $e) {
-
-    error_log("Erro ao editar usuário: " . $e->getMessage());
-
+    Logger::error("usuario/update", "Erro inesperado ao editar usuário", ["erro" => $e->getMessage()]);
     ob_clean();
     echo json_encode([
-        'sucesso' => false,
-        'mensagem' => 'Erro no servidor: ' . $e->getMessage()
+        'success'  => false,
+        'message' => 'Erro no servidor.'
     ]);
     exit;
 }

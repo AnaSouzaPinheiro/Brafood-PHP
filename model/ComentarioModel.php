@@ -10,21 +10,19 @@ class ComentarioModel {
     }
 
     public function buscarComentarioPorReceita(int $idReceita): array {
-        $sql = "
-            SELECT 
-                c.id,
-                c.id_receita,
-                c.id_usuario,
-                c.id_comentario_pai,
-                c.texto,
-                c.data_criacao,
-                u.nome AS nome_usuario,
-                u.foto_perfil
-            FROM comentarios c
-            JOIN usuarios u ON u.id = c.id_usuario
-            WHERE c.id_receita = ?
-            ORDER BY c.data_criacao ASC
-        ";
+        $sql = "SELECT 
+                    c.id,
+                    c.id_receita,
+                    c.id_usuario,
+                    c.id_comentario_pai,
+                    c.texto,
+                    c.data_criacao,
+                    u.nome AS nome_usuario,
+                    u.foto_perfil
+                FROM comentarios c
+                JOIN usuarios u ON u.id = c.id_usuario
+                WHERE c.id_receita = ?
+                ORDER BY c.data_criacao ASC";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$idReceita]);
@@ -33,11 +31,9 @@ class ComentarioModel {
     }
 
     public function criar(array $data): bool {
-        $sql = "
-            INSERT INTO comentarios 
-            (id_receita, id_usuario, id_comentario_pai, texto)
-            VALUES (?, ?, ?, ?)
-        ";
+        $sql = "INSERT INTO comentarios 
+                (id_receita, id_usuario, id_comentario_pai, texto)
+                VALUES (?, ?, ?, ?)";
 
         $stmt = $this->conn->prepare($sql);
 

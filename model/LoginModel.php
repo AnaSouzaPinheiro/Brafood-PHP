@@ -8,29 +8,22 @@ class LoginModel
         $this->conn = $db;
     }
 
-    // Função para cadastro
     public function cadastrar($nome, $email, $senha)
     {
-        // validação básica da senha
         $erros = $this->validarSenha($senha);
-
-        // filtra apenas os erros reais
         $errosFiltrados = array_filter($erros);
 
         if (!empty($errosFiltrados)) {
             return ['success' => false, 'errors' => $errosFiltrados];
         }
 
-        // verificar se email existe
         $stmt = $this->conn->prepare("SELECT id FROM usuarios WHERE email = :email");
         $stmt->bindParam(':email', $email);
         $stmt->execute();
         if ($stmt->fetch()) return ['success' => false, 'errors' => ['Este email já está cadastrado.']];
 
-        // hash da senha
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
-        // inserir usuário
         $stmt = $this->conn->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (:nome, :email, :senha)");
         $stmt->bindParam(':nome', $nome);
         $stmt->bindParam(':email', $email);
@@ -40,7 +33,6 @@ class LoginModel
         return ['success' => true];
     }
 
-    // Função para login
     public function login($email, $senha)
     {
         $stmt = $this->conn->prepare("SELECT id, senha FROM usuarios WHERE email = :email");
@@ -54,7 +46,6 @@ class LoginModel
         return ['success' => false, 'message' => 'Email ou senha incorretos'];
     }
 
-    // Validação da senha
     private function validarSenha($senha)
     {
         $erros = [null, null, null, null, null];
@@ -91,7 +82,6 @@ class LoginModel
         $stmt->bindParam(':email', $email);
         $stmt->execute();
 
-        // Aqui enviaria e-mail. Para testes:
         return [
             "success" => true,
             "message" => "Token gerado.",
@@ -105,16 +95,12 @@ class LoginModel
             return ["success" => false, "message" => "As senhas não coincidem."];
         }
 
-        // validação básica da senha
         $erros = $this->validarSenha($senha);
-
-        // filtra apenas os erros reais
         $errosFiltrados = array_filter($erros);
 
         if (!empty($errosFiltrados)) {
             return ['success' => false, 'errors' => $errosFiltrados];
         }
-
 
         $stmt = $this->conn->prepare("
                 SELECT id FROM usuarios
@@ -133,10 +119,10 @@ class LoginModel
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
         $stmt = $this->conn->prepare("
-        UPDATE usuarios
-        SET senha = :senha, token_recuperacao = NULL, token_expira = NULL
-        WHERE id = :id
-    ");
+            UPDATE usuarios
+            SET senha = :senha, token_recuperacao = NULL, token_expira = NULL
+            WHERE id = :id
+        ");
         $stmt->bindParam(':senha', $senhaHash);
         $stmt->bindParam(':id', $user['id']);
         $stmt->execute();

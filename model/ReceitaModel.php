@@ -2,14 +2,12 @@
 class ReceitaModel
 {
     private $conn;
-    private $table = "receitas";
 
     public function __construct($db)
     {
         $this->conn = $db;
     }
 
-    // Retorna receitas para os cards
     public function listarTodas($pesquisa = '')
     {
         if (!empty($pesquisa)) {
@@ -100,10 +98,8 @@ class ReceitaModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Retorna uma receita completa (com ingredientes e modo de preparo)
     public function buscarPorId($id)
     {
-        // Dados básicos da receita
         $sql = "SELECT r.*, CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor, u.foto_perfil, c.nome AS categoria
                 FROM receitas r
                 JOIN usuarios u ON r.id_usuario = u.id
@@ -120,7 +116,6 @@ class ReceitaModel
         if (!$receita)
             return null;
 
-        // Ingredientes
         $sqlIngr = "SELECT ii.titulo AS titulo_ingrediente, i.descricao
                     FROM itens_ingredientes ii
                     LEFT JOIN ingredientes i ON i.id_item = ii.id_item
@@ -141,13 +136,11 @@ class ReceitaModel
                 ];
             }
 
-            // Evita adicionar null (caso algum ingrediente não tenha descrição)
             if (!empty($row["descricao"])) {
                 $ingredientes[$titulo]["itens"][] = $row["descricao"];
             }
         }
 
-        // Etapas do modo de preparo
         $sqlEtapas = "SELECT e.id_secao_preparo, e.titulo, e.ordem
                   FROM etapas_preparo e
                   WHERE e.id_receita = :id
@@ -160,7 +153,6 @@ class ReceitaModel
         while ($etapa = $stmtEtapas->fetch(PDO::FETCH_ASSOC)) {
             $idEtapa = $etapa["id_secao_preparo"];
 
-            // Descrições de cada etapa
             $sqlDesc = "SELECT descricao, ordem
                     FROM descricoes_preparo
                     WHERE id_etapa = :idEtapa
@@ -194,30 +186,28 @@ class ReceitaModel
 
         $orderBy = $ordenacoes[$ordenar] ?? $ordenacoes['nome'];
 
-        $sql = "
-        SELECT 
-            r.id,
-            r.titulo,
-            r.resumo,
-            r.dificuldade,
-            r.tempo_hora,
-            r.tempo_min,
-            r.porcoes,
-            r.tipo_porcao,
-            r.qtd_fav,
-            r.data_criacao,
-            r.imagem1,
-            CONCAT(u.nome, ' ', u.sobrenome) AS autor,
-            c.nome AS categoria,
-            s.id   AS sub_id,
-            s.nome AS sub_nome
-        FROM receitas r
-        JOIN usuarios u ON u.id = r.id_usuario
-        LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
-        LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
-        LEFT JOIN categorias c ON c.id = s.id_categoria
-        WHERE c.id = :categoria
-    ";
+        $sql = "SELECT 
+                    r.id,
+                    r.titulo,
+                    r.resumo,
+                    r.dificuldade,
+                    r.tempo_hora,
+                    r.tempo_min,
+                    r.porcoes,
+                    r.tipo_porcao,
+                    r.qtd_fav,
+                    r.data_criacao,
+                    r.imagem1,
+                    CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                    c.nome AS categoria,
+                    s.id   AS sub_id,
+                    s.nome AS sub_nome
+                FROM receitas r
+                JOIN usuarios u ON u.id = r.id_usuario
+                LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+                LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+                LEFT JOIN categorias c ON c.id = s.id_categoria
+                WHERE c.id = :categoria";
 
         $params = [
             ':categoria' => $idCategoria
@@ -232,14 +222,12 @@ class ReceitaModel
                 $params[$key] = (int)$sub;
             }
 
-            $sql .= "
-            AND EXISTS (
-                SELECT 1
-                FROM receita_subcategoria rs2
-                WHERE rs2.id_receita = r.id
-                AND rs2.id_subcategoria IN (" . implode(',', $placeholders) . ")
-            )
-        ";
+            $sql .= "AND EXISTS (
+                    SELECT 1
+                    FROM receita_subcategoria rs2
+                    WHERE rs2.id_receita = r.id
+                    AND rs2.id_subcategoria IN (" . implode(',', $placeholders) . ")
+                )";
         }
 
         $sql .= " ORDER BY $orderBy";
@@ -255,7 +243,6 @@ class ReceitaModel
 
         return $this->organizarSubcategorias($rows);
     }
-
 
     private function organizarSubcategorias($rows)
     {
@@ -287,7 +274,6 @@ class ReceitaModel
         try {
             $this->conn->beginTransaction();
 
-            // 1. Deletar descrições de preparo
             $sql = "DELETE dp
                 FROM descricoes_preparo dp
                 JOIN etapas_preparo ep ON ep.id_secao_preparo = dp.id_etapa
@@ -296,13 +282,11 @@ class ReceitaModel
             $stmt->bindParam(':id', $id);
             $stmt->execute();
 
-            // 2. Deletar etapas de preparo
             $sql = "DELETE FROM etapas_preparo WHERE id_receita = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
             $stmt->execute();
 
-            // 3. Deletar ingredientes
             $sql = "DELETE i FROM ingredientes i
                 JOIN itens_ingredientes ii ON ii.id_item = i.id_item
                 WHERE ii.id_receita = :id";
@@ -310,19 +294,16 @@ class ReceitaModel
             $stmt->bindParam(':id', $id);
             $stmt->execute();
 
-            // 4. Deletar itens_ingredientes
             $sql = "DELETE FROM itens_ingredientes WHERE id_receita = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
             $stmt->execute();
 
-            // 5. Deletar relação com subcategorias
             $sql = "DELETE FROM receita_subcategoria WHERE id_receita = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
             $stmt->execute();
 
-            // 6. Deletar a receita
             $sql = "DELETE FROM receitas WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
@@ -364,7 +345,7 @@ class ReceitaModel
             }
         }
 
-        return array_values($ingredientes); // agora cada grupo tem 'id_item', 'titulo' e 'itens'
+        return array_values($ingredientes);
     }
 
     public function getEtapas($id)
@@ -400,7 +381,6 @@ class ReceitaModel
 
         return $etapas;
     }
-
     public function getSubcategoria($idReceita)
     {
         $sql = "SELECT s.nome

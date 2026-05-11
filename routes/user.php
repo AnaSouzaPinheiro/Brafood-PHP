@@ -1,36 +1,22 @@
 <?php
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/php-error.log');
+require_once __DIR__ . '/../config/cors.php';
+require_once __DIR__ . '/../config/env.php';
 
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../controller/UserCtl.php';
 
-include_once '../config/Database.php';
-include_once '../model/UserModel.php';
-
-// Conexão
-$database = new Database();
-$db = $database->getConnection();
-
-$userModel = new UserModel($db);
-
-// Pega ID via GET (?id=)
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($id > 0) {
-    $user = $userModel->buscarUserPorId($id);
-
-    if ($user) {
-        echo json_encode($user, JSON_UNESCAPED_UNICODE);
-    } else {
-        http_response_code(404);
-        echo json_encode(["mensagem" => "Usuário não encontrada."]);
-    }
-} else {
-    http_response_code(400);
-    echo json_encode(["mensagem" => "ID inválido."]);
+if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
+    http_response_code(200);
+    exit;
 }
-?>
+
+$db = (new Database())->getConnection();
+$ctl = new UserCtl($db);
+
+$id = isset($_GET['id'])
+    ? intval($_GET['id'])
+    : 0;
+
+$response = $ctl->buscarUsuarioPorId($id);
+echo json_encode($response, JSON_UNESCAPED_UNICODE);

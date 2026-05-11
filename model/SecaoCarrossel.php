@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config/Database.php'; // exemplo se estiver na pasta config
+require_once __DIR__ . '/../config/Database.php';
 
 class SecaoCarrossel
 {
@@ -11,7 +11,6 @@ class SecaoCarrossel
         $this->pdo = $db->getConnection();
     }
 
-    // Retorna todas as seções
     public function getAllSecoes()
     {
         $stmt = $this->pdo->prepare("SELECT * FROM secoes_carrossel ORDER BY ordem ASC");
@@ -19,7 +18,6 @@ class SecaoCarrossel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Retorna todas as receitas de uma seção
     public function getReceitasBySecao($secao_id)
     {
         $stmt = $this->pdo->prepare("
@@ -46,8 +44,6 @@ class SecaoCarrossel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-
-    // Criar uma seção
     public function createSecao($titulo, $url_fundo, $fundo_titulo, $ordem = 0)
     {
         $stmt = $this->pdo->prepare("
@@ -64,7 +60,6 @@ class SecaoCarrossel
         return $this->pdo->lastInsertId();
     }
 
-    // Vincular receita a seção
     public function addReceitaToSecao($secao_id, $receita_id)
     {
         $stmt = $this->pdo->prepare("
@@ -76,12 +71,6 @@ class SecaoCarrossel
             ':receita_id' => $receita_id
         ]);
     }
-
-    public function updateSecao() {}
-
-    public function clearReceitasFromSecao() {}
-
-    public function deleteSecao() {}
 
     private function getReceitasAleatorias($limit = 6)
     {
@@ -113,12 +102,10 @@ class SecaoCarrossel
 
     public function getReceitasDaSecao($secao)
     {
-        // CASO 1: categoria e subcategoria NULAS → receitas aleatórias
         if (empty($secao['id_categoria']) && empty($secao['id_subcategoria'])) {
             return $this->getReceitasAleatorias(6);
         }
 
-        // CASO 2: receitas vinculadas normalmente
         return $this->getReceitasBySecao($secao['id']);
     }
 }
