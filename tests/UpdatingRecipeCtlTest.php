@@ -6,14 +6,15 @@ require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/UpdatingRecipeModel.php';
 require_once __DIR__ . '/../model/AddingRecipeModel.php';
 require_once __DIR__ . '/../model/ReceitaModel.php';
+require_once __DIR__ . '/../service/ReceitaDiffService.php';
 require_once __DIR__ . '/../controller/UpdatingRecipeCtl.php';
 
 class UpdatingRecipeCtlTest extends TestCase
 {
     private function makeCtl(
         UpdatingRecipeModel $updating,
-        AddingRecipeModel   $adding,
-        ReceitaModel        $receita
+        ReceitaModel        $receita,
+        ReceitaDiffService  $diff
     ): UpdatingRecipeCtl {
         $ctl = new UpdatingRecipeCtl(null);
 
@@ -21,13 +22,13 @@ class UpdatingRecipeCtlTest extends TestCase
         $r1->setAccessible(true);
         $r1->setValue($ctl, $updating);
 
-        $r2 = new ReflectionProperty(UpdatingRecipeCtl::class, 'addRecipeModel');
+        $r2 = new ReflectionProperty(UpdatingRecipeCtl::class, 'receitaModel');
         $r2->setAccessible(true);
-        $r2->setValue($ctl, $adding);
+        $r2->setValue($ctl, $receita);
 
-        $r3 = new ReflectionProperty(UpdatingRecipeCtl::class, 'receitaModel');
+        $r3 = new ReflectionProperty(UpdatingRecipeCtl::class, 'diffService');
         $r3->setAccessible(true);
-        $r3->setValue($ctl, $receita);
+        $r3->setValue($ctl, $diff);
 
         return $ctl;
     }
@@ -44,29 +45,22 @@ class UpdatingRecipeCtlTest extends TestCase
             'tempo_min'   => 30,
             'porcoes'     => 8,
             'tipo_porcao' => 'fatia',
-            'subcategoria'=> null,
             'ingredientes'=> [],
             'etapas'      => [],
         ];
     }
 
-    // -------------------------------------------------------------------------
-    // editarReceita — fluxo feliz
-    // -------------------------------------------------------------------------
-
     public function testEditarReceitaComSucesso(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->method('updateReceita')->willReturn(null);
-
-        $adding  = $this->createMock(AddingRecipeModel::class);
-
-        $receita = $this->createMock(ReceitaModel::class);
+        $receita  = $this->createMock(ReceitaModel::class);
         $receita->method('getSubcategoria')->willReturn(null);
         $receita->method('getIngredientes')->willReturn([]);
         $receita->method('getEtapas')->willReturn([]);
 
-        $ctl = $this->makeCtl($updating, $adding, $receita);
+        $diff = $this->createMock(ReceitaDiffService::class);
+
+        $ctl = $this->makeCtl($updating, $receita, $diff);
 
         $resultado = $ctl->editarReceita($this->dadosMinimos(), []);
 
@@ -75,144 +69,66 @@ class UpdatingRecipeCtlTest extends TestCase
         $this->assertEquals(1, $resultado['id']);
     }
 
-    public function testEditarReceitaLancaExcecaoQuandoModelFalha(): void
+    public function testEditarReceitaDelegaDiffAoService(): void
     {
-        $this->expectException(Exception::class);
-
         $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->method('updateReceita')
-                 ->willThrowException(new Exception('Erro no banco'));
+        $receita  = $this->createMock(ReceitaModel::class);
+        $receita->method('getSubcategoria')->willReturn('Bolos');
+        $receita->method('getIngredientes')->willReturn([]);
+        $receita->method('getEtapas')->willReturn([]);
 
-        $adding  = $this->createMock(AddingRecipeModel::class);
-        $receita = $this->createMock(ReceitaModel::class);
+        $diff = $this->createMock(ReceitaDiffService::class);
+        $diff->expects($this->once())->method('diffSubcategoria');
+        $diff->expects($this->once())->method('diffIngredientes');
+        $diff->expects($this->once())->method('diffEtapas');
 
-        $ctl = $this->makeCtl($updating, $adding, $receita);
+        $ctl = $this->makeCtl($updating, $receita, $diff);
 
         $ctl->editarReceita($this->dadosMinimos(), []);
     }
 
-    // -------------------------------------------------------------------------
-    // editarReceita — lógica de subcategoria
-    // -------------------------------------------------------------------------
-
-    public function testEditarReceitaRemoveSubcategoriaQuandoNovaEhNula(): void
+    public function testEditarReceitaLancaExcecaoQuandoUpdateFalha(): void
     {
-        $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->expects($this->once())->method('removerSubcategorias');
+        $this->expectException(Exception::class);
 
-        $adding  = $this->createMock(AddingRecipeModel::class);
+        $updating = $this->createMock(UpdatingRecipeModel::class);
+        $updating->method('updateReceita')->willThrowException(new Exception('Erro'));
 
         $receita = $this->createMock(ReceitaModel::class);
-        $receita->method('getSubcategoria')->willReturn('Bolos');
-        $receita->method('getIngredientes')->willReturn([]);
-        $receita->method('getEtapas')->willReturn([]);
+        $diff    = $this->createMock(ReceitaDiffService::class);
 
-        $ctl = $this->makeCtl($updating, $adding, $receita);
-
-        $dados = $this->dadosMinimos();
-        $dados['subcategoria'] = null;
-
-        $resultado = $ctl->editarReceita($dados, []);
-
-        $this->assertTrue($resultado['success']);
+        $this->makeCtl($updating, $receita, $diff)
+             ->editarReceita($this->dadosMinimos(), []);
     }
 
-    public function testEditarReceitaVinculaNovaSubcategoriaQuandoNaoHavia(): void
+    public function testEditarReceitaPassaImagensCorretamente(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->expects($this->once())->method('vincularSubcategoria');
-
-        $adding  = $this->createMock(AddingRecipeModel::class);
+        $updating->expects($this->once())
+                 ->method('updateReceita')
+                 ->with(
+                     $this->anything(),
+                     $this->anything(),
+                     $this->anything(),
+                     $this->anything(),
+                     $this->anything(),
+                     $this->anything(),
+                     $this->anything(),
+                     $this->anything(),
+                     $this->anything(),
+                     'img1.jpg',
+                     'img2.jpg',
+                     null
+                 );
 
         $receita = $this->createMock(ReceitaModel::class);
         $receita->method('getSubcategoria')->willReturn(null);
         $receita->method('getIngredientes')->willReturn([]);
         $receita->method('getEtapas')->willReturn([]);
 
-        $ctl = $this->makeCtl($updating, $adding, $receita);
+        $diff = $this->createMock(ReceitaDiffService::class);
 
-        $dados = $this->dadosMinimos();
-        $dados['subcategoria'] = 'Petiscos';
-
-        $resultado = $ctl->editarReceita($dados, []);
-
-        $this->assertTrue($resultado['success']);
-    }
-
-    public function testEditarReceitaTrocaSubcategoriaQuandoMudou(): void
-    {
-        $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->expects($this->once())->method('removerSubcategorias');
-        $updating->expects($this->once())->method('vincularSubcategoria');
-
-        $adding  = $this->createMock(AddingRecipeModel::class);
-
-        $receita = $this->createMock(ReceitaModel::class);
-        $receita->method('getSubcategoria')->willReturn('Bolos');
-        $receita->method('getIngredientes')->willReturn([]);
-        $receita->method('getEtapas')->willReturn([]);
-
-        $ctl = $this->makeCtl($updating, $adding, $receita);
-
-        $dados = $this->dadosMinimos();
-        $dados['subcategoria'] = 'Tortas';
-
-        $resultado = $ctl->editarReceita($dados, []);
-
-        $this->assertTrue($resultado['success']);
-    }
-
-    // -------------------------------------------------------------------------
-    // editarReceita — lógica de ingredientes
-    // -------------------------------------------------------------------------
-
-    public function testEditarReceitaAdicionaNovoIngrediente(): void
-    {
-        $updating = $this->createMock(UpdatingRecipeModel::class);
-        $adding   = $this->createMock(AddingRecipeModel::class);
-        $adding->expects($this->once())->method('criarItemIngrediente')->willReturn(99);
-        $adding->expects($this->once())->method('criarIngrediente');
-
-        $receita = $this->createMock(ReceitaModel::class);
-        $receita->method('getSubcategoria')->willReturn(null);
-        $receita->method('getIngredientes')->willReturn([]);
-        $receita->method('getEtapas')->willReturn([]);
-
-        $ctl = $this->makeCtl($updating, $adding, $receita);
-
-        $dados                = $this->dadosMinimos();
-        $dados['ingredientes'] = [
-            ['titulo' => 'Massa', 'itens' => ['500g farinha']],
-        ];
-
-        $resultado = $ctl->editarReceita($dados, []);
-
-        $this->assertTrue($resultado['success']);
-    }
-
-    public function testEditarReceitaRemoveIngredienteAusente(): void
-    {
-        $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->expects($this->once())->method('removerIngrediente');
-
-        $adding  = $this->createMock(AddingRecipeModel::class);
-
-        $receita = $this->createMock(ReceitaModel::class);
-        $receita->method('getSubcategoria')->willReturn(null);
-        $receita->method('getIngredientes')->willReturn([
-            ['titulo' => 'Massa', 'id_item' => 1, 'itens' => ['500g farinha']],
-        ]);
-        $receita->method('getEtapas')->willReturn([]);
-
-        $ctl = $this->makeCtl($updating, $adding, $receita);
-
-        $dados                = $this->dadosMinimos();
-        $dados['ingredientes'] = [
-            ['titulo' => 'Massa', 'itens' => []],   // Remove '500g farinha'
-        ];
-
-        $resultado = $ctl->editarReceita($dados, []);
-
-        $this->assertTrue($resultado['success']);
+        $this->makeCtl($updating, $receita, $diff)
+             ->editarReceita($this->dadosMinimos(), ['imagem1' => 'img1.jpg', 'imagem2' => 'img2.jpg']);
     }
 }

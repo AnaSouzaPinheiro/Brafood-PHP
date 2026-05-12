@@ -19,11 +19,7 @@ class AddingRecipeModel
         if (empty($dados['autor'])) {
             throw new Exception("ID do usuário não informado.");
         }
-
-        /*if (empty($dados['titulo'])) {
-            throw new Exception("O título da receita é obrigatório.");
-        }*/
-
+        
         // campos obrigatórios
         $camposObrigatorios = ['titulo', 'resumo', 'dificuldade', 'porcoes', 'tipo_porcao'];
 
@@ -59,14 +55,20 @@ class AddingRecipeModel
         return $this->conn->lastInsertId();
     }
 
-    public function vincularSubcategoria($idReceita, $nomeSubcategoria)
+    public function vincularSubcategoria($idReceita, $idSubcategoria)
     {
-        $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE nome = ? LIMIT 1");
-        $stmt->execute([$nomeSubcategoria]);
-        $idSubcategoria = $stmt->fetchColumn();
+        // Recebe o ID diretamente — sem lookup por nome
+        $idSubcategoria = (int) $idSubcategoria;
 
         if (!$idSubcategoria) {
-            throw new Exception("Subcategoria não encontrada: " . $nomeSubcategoria);
+            throw new Exception("ID de subcategoria inválido.");
+        }
+
+        // Confirma que o ID existe no banco antes de vincular
+        $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE id = ? LIMIT 1");
+        $stmt->execute([$idSubcategoria]);
+        if (!$stmt->fetchColumn()) {
+            throw new Exception("Subcategoria não encontrada: id = " . $idSubcategoria);
         }
 
         $stmt = $this->conn->prepare("INSERT INTO receita_subcategoria (id_receita, id_subcategoria) VALUES (?, ?)");
@@ -85,11 +87,6 @@ class AddingRecipeModel
 
     public function criarIngrediente($descricao, $idItem)
     {
-        /*$sql = "INSERT INTO ingredientes (descricao, id_item) VALUES (?, ?)";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$descricao, $idItem]);
-        return $this->conn->lastInsertId();*/
-
         // Verifica se já existe
         $sql = "SELECT id_ingrediente FROM ingredientes WHERE id_item = ? AND descricao = ? LIMIT 1";
         $stmt = $this->conn->prepare($sql);

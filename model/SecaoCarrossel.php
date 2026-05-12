@@ -1,14 +1,22 @@
 <?php
-require_once __DIR__ . '/../config/Database.php';
 
 class SecaoCarrossel
 {
     private $pdo;
 
-    public function __construct()
+    /**
+     * @param \PDO|null $pdo  Conexão injetada. Se null, instancia Database internamente
+     *                        (compatibilidade com o código de produção existente).
+     */
+    public function __construct($pdo = null)
     {
-        $db = new Database();
-        $this->pdo = $db->getConnection();
+        if ($pdo !== null) {
+            $this->pdo = $pdo;
+        } else {
+            require_once __DIR__ . '/../config/Database.php';
+            $db        = new Database();
+            $this->pdo = $db->getConnection();
+        }
     }
 
     public function getAllSecoes()
@@ -52,10 +60,10 @@ class SecaoCarrossel
             VALUES (:titulo, :url_fundo, :fundo_titulo, :ordem)
         ");
         $stmt->execute([
-            ':titulo' => $titulo,
-            ':url_fundo' => $url_fundo,
+            ':titulo'       => $titulo,
+            ':url_fundo'    => $url_fundo,
             ':fundo_titulo' => $fundo_titulo,
-            ':ordem' => $ordem
+            ':ordem'        => $ordem,
         ]);
         return $this->pdo->lastInsertId();
     }
@@ -67,8 +75,8 @@ class SecaoCarrossel
             VALUES (:secao_id, :receita_id)
         ");
         $stmt->execute([
-            ':secao_id' => $secao_id,
-            ':receita_id' => $receita_id
+            ':secao_id'   => $secao_id,
+            ':receita_id' => $receita_id,
         ]);
     }
 
@@ -92,13 +100,10 @@ class SecaoCarrossel
         ORDER BY RAND()
         LIMIT :limit
     ");
-
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
 
     public function getReceitasDaSecao($secao)
     {

@@ -3,6 +3,10 @@
 /**
  * Controla comentários de receitas.
  * Suporta listagem (GET) e criação (POST), incluindo respostas aninhadas via id_comentario_pai.
+ *
+ * Os métodos retornam arrays — a camada de rota é responsável por
+ * chamar http_response_code() e echo json_encode(), o que torna
+ * este controller totalmente testável sem output de buffer.
  */
 
 class ComentariosCtl
@@ -15,32 +19,47 @@ class ComentariosCtl
         $this->model = new ComentarioModel($db);
     }
 
-    public function index(): void
+    /**
+     * Lista comentários de uma receita.
+     *
+     * @param int|null $idReceita  ID extraído da query string pela rota.
+     * @return array{status: int, body: array}
+     */
+    public function index(?int $idReceita): array
     {
-        if (!isset($_GET['receita'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Receita não informada']);
-            return;
+        if (!$idReceita) {
+            return [
+                'status' => 400,
+                'body'   => ['error' => 'Receita não informada'],
+            ];
         }
 
-        $idReceita   = (int) $_GET['receita'];
         $comentarios = $this->model->buscarComentarioPorReceita($idReceita);
 
-        echo json_encode($comentarios);
+        return [
+            'status' => 200,
+            'body'   => $comentarios,
+        ];
     }
 
-    public function store(): void
+    /**
+     * Cria um novo comentário (ou resposta aninhada).
+     *
+     * @param array $data  Payload decodificado do body JSON.
+     * @return array{status: int, body: array}
+     */
+    public function store(array $data): array
     {
-        $data = json_decode(file_get_contents('php://input'), true);
-
         if (empty($data['id_receita']) || empty($data['texto']) || empty($data['id_usuario'])) {
             Logger::warn('comentarios', 'Tentativa de comentário com dados inválidos', [
                 'usuario_id' => $data['id_usuario'] ?? '(ausente)',
-                'receita_id' => $data['id_receita'] ?? '(ausente)'
+                'receita_id' => $data['id_receita'] ?? '(ausente)',
             ]);
-            http_response_code(400);
-            echo json_encode(['error' => 'Dados inválidos: id_receita, id_usuario e texto são obrigatórios.']);
-            return;
+
+            return [
+                'status' => 400,
+                'body'   => ['error' => 'Dados inválidos: id_receita, id_usuario e texto são obrigatórios.'],
+            ];
         }
 
         try {
@@ -54,20 +73,25 @@ class ComentariosCtl
             Logger::info('comentarios', 'Comentário postado', [
                 'usuario_id' => $data['id_usuario'],
                 'receita_id' => $data['id_receita'],
-                'resposta'   => isset($data['id_comentario_pai']) ? 'sim' : 'nao'
+                'resposta'   => isset($data['id_comentario_pai']) ? 'sim' : 'nao',
             ]);
 
-            http_response_code(201);
-            echo json_encode(['success' => true]);
+            return [
+                'status' => 201,
+                'body'   => ['success' => true],
+            ];
 
         } catch (Exception $e) {
             Logger::error('comentarios', 'Erro ao salvar comentário', [
                 'usuario_id' => $data['id_usuario'],
                 'receita_id' => $data['id_receita'],
-                'error'       => $e->getMessage()
+                'error'       => $e->getMessage(),
             ]);
-            http_response_code(500);
-            echo json_encode(['error' => 'Erro ao salvar comentário.']);
+
+            return [
+                'status' => 500,
+                'body'   => ['error' => 'Erro ao salvar comentário.'],
+            ];
         }
     }
 }

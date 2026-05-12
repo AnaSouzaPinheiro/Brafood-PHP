@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../config/env.php';
 require_once __DIR__ . '/../../config/Database.php';
 require_once __DIR__ . '/../../config/Logger.php';
 require_once __DIR__ . '/../../controller/UpdatingRecipeCtl.php';
+require_once __DIR__ . '/../../service/UploadService.php';
 
 $db  = (new Database())->getConnection();
 $ctl = new UpdatingRecipeCtl($db);
@@ -14,36 +15,28 @@ if (!isset($_POST['dados'])) {
     exit;
 }
 
-$dados     = json_decode($_POST['dados'], true);
-$imagens   = [];
-$uploadDir = __DIR__ . '/../../uploads/receitas/';
-$baseUrl   = $_ENV['API_UPLOAD_URL'] . '/receitas/';
+$dados = json_decode($_POST['dados'], true);
 
-if (!file_exists($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
-}
+$uploadService = new UploadService(
+    __DIR__ . '/../../uploads/receitas/',
+    $_ENV['API_UPLOAD_URL'] . '/receitas/'
+);
 
-foreach (['imagem1', 'imagem2', 'imagem3'] as $campo) {
-    if (!empty($_FILES[$campo]['tmp_name'])) {
-        $ext      = pathinfo($_FILES[$campo]['name'], PATHINFO_EXTENSION);
-        $novoNome = uniqid('receita_') . '.' . $ext;
-        $destino  = $uploadDir . $novoNome;
+// Fallback: mantém as imagens existentes caso não venha arquivo novo
+$fallback = [
+    'imagem1' => $dados['imagem1'] ?? null,
+    'imagem2' => $dados['imagem2'] ?? null,
+    'imagem3' => $dados['imagem3'] ?? null,
+];
 
-        $imagens[$campo] = move_uploaded_file($_FILES[$campo]['tmp_name'], $destino)
-            ? $baseUrl . $novoNome
-            : null;
-    } else {
-        // Mantém imagem existente se não veio arquivo novo
-        $imagens[$campo] = $dados[$campo] ?? null;
-    }
-}
+$imagens = $uploadService->processarImagens($fallback);
 
 try {
     $result = $ctl->editarReceita($dados, $imagens);
     echo json_encode($result);
 } catch (Exception $e) {
     echo json_encode([
-        'success'  => false,
+        'success' => false,
         'message' => 'Erro no servidor: ' . $e->getMessage()
     ]);
 }

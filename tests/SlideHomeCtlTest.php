@@ -3,34 +3,17 @@
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../config/Logger.php';
+require_once __DIR__ . '/../model/SlideHomeModel.php';
+require_once __DIR__ . '/../controller/SlideHomeCtl.php';
 
-/**
- * Testes para SlideHomeCtl.
- * SlideHome também instancia Database internamente, então usamos
- * newInstanceWithoutConstructor + ReflectionProperty para injetar o mock.
- */
 class SlideHomeCtlTest extends TestCase
 {
-    private function makeCtlWithModel(object $model): object
-    {
-        $ctl = (new ReflectionClass('SlideHomeCtl'))->newInstanceWithoutConstructor();
-
-        $ref = new ReflectionProperty('SlideHomeCtl', 'model');
-        $ref->setAccessible(true);
-        $ref->setValue($ctl, $model);
-
-        return $ctl;
-    }
-
     // -------------------------------------------------------------------------
     // index
     // -------------------------------------------------------------------------
 
-    public function testIndexRetornaReceitasComLimitePadrao(): void
+    public function testIndexUsaLimitePadraoCinco(): void
     {
-        require_once __DIR__ . '/../model/SlideHomeModel.php';
-        require_once __DIR__ . '/../controller/SlideHomeCtl.php';
-
         $model = $this->createMock(SlideHome::class);
         $model->expects($this->once())
               ->method('getRandomRecipes')
@@ -39,7 +22,7 @@ class SlideHomeCtlTest extends TestCase
 
         $_GET = [];
 
-        $ctl = $this->makeCtlWithModel($model);
+        $ctl      = new SlideHomeCtl($model);
         $resultado = $ctl->index();
 
         $this->assertCount(5, $resultado);
@@ -47,9 +30,6 @@ class SlideHomeCtlTest extends TestCase
 
     public function testIndexRespeiraLimiteDaQueryString(): void
     {
-        require_once __DIR__ . '/../model/SlideHomeModel.php';
-        require_once __DIR__ . '/../controller/SlideHomeCtl.php';
-
         $model = $this->createMock(SlideHome::class);
         $model->expects($this->once())
               ->method('getRandomRecipes')
@@ -58,29 +38,41 @@ class SlideHomeCtlTest extends TestCase
 
         $_GET = ['limit' => '3'];
 
-        $ctl = $this->makeCtlWithModel($model);
+        $ctl      = new SlideHomeCtl($model);
         $resultado = $ctl->index();
 
         $this->assertCount(3, $resultado);
 
-        // Limpa superglobal
         $_GET = [];
     }
 
     public function testIndexRetornaArrayVazioQuandoSemReceitas(): void
     {
-        require_once __DIR__ . '/../model/SlideHomeModel.php';
-        require_once __DIR__ . '/../controller/SlideHomeCtl.php';
-
         $model = $this->createMock(SlideHome::class);
         $model->method('getRandomRecipes')->willReturn([]);
 
         $_GET = [];
 
-        $ctl = $this->makeCtlWithModel($model);
+        $ctl      = new SlideHomeCtl($model);
         $resultado = $ctl->index();
 
         $this->assertIsArray($resultado);
         $this->assertEmpty($resultado);
+    }
+
+    public function testIndexConverteLimitParaInteiro(): void
+    {
+        $model = $this->createMock(SlideHome::class);
+        $model->expects($this->once())
+              ->method('getRandomRecipes')
+              ->with(2)   // "2abc" deve virar int(2)
+              ->willReturn([]);
+
+        $_GET = ['limit' => '2abc'];
+
+        $ctl = new SlideHomeCtl($model);
+        $ctl->index();
+
+        $_GET = [];
     }
 }

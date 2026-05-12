@@ -100,7 +100,15 @@ class ReceitaModel
 
     public function buscarPorId($id)
     {
-        $sql = "SELECT r.*, CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor, u.foto_perfil, c.nome AS categoria
+        // Retorna IDs de categoria e subcategoria para que o Angular
+        // possa pre-selecionar os dropdowns por valor, nao por nome.
+        $sql = "SELECT r.*,
+                       CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor,
+                       u.foto_perfil,
+                       c.nome AS categoria,
+                       c.id   AS idCategoria,
+                       s.nome AS subcategoria,
+                       s.id   AS idSubcategoria
                 FROM receitas r
                 JOIN usuarios u ON r.id_usuario = u.id
                 LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
@@ -383,7 +391,8 @@ class ReceitaModel
     }
     public function getSubcategoria($idReceita)
     {
-        $sql = "SELECT s.nome
+        // Retorna o ID para consistencia com o fluxo de add/update (que agora trabalha com IDs)
+        $sql = "SELECT s.id
                 FROM receita_subcategoria rs
                 JOIN subcategorias s ON s.id = rs.id_subcategoria
                 WHERE rs.id_receita = :idReceita
