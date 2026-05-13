@@ -70,31 +70,33 @@ class ReceitaModel
 
     public function listByUser($idUser)
     {
-        $query = "SELECT 
-                r.id,
-                r.titulo,
-                r.resumo,
-                r.dificuldade,
-                r.tempo_hora,
-                r.tempo_min,
-                r.porcoes,
-                r.tipo_porcao,
-                r.qtd_fav,
-                r.data_criacao,
-                r.imagem1,
-                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
-                c.nome AS categoria
-            FROM receitas r
-            JOIN usuarios u ON r.id_usuario = u.id
-            LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
-            LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
-            LEFT JOIN categorias c ON c.id = s.id_categoria
-            WHERE u.id = :idUser
-            ORDER BY r.titulo ASC";
+        $query = "SELECT
+            r.id,
+            r.titulo,
+            r.resumo,
+            r.dificuldade,
+            r.tempo_hora,
+            r.tempo_min,
+            r.porcoes,
+            r.tipo_porcao,
+            r.qtd_fav,
+            r.data_criacao,
+            r.imagem1,
+            CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+            GROUP_CONCAT(DISTINCT c.nome SEPARATOR ', ') AS categoria
+        FROM receitas r
+        JOIN usuarios u ON r.id_usuario = u.id
+        LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+        LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+        LEFT JOIN categorias c ON c.id = s.id_categoria
+        WHERE u.id = :idUser
+        GROUP BY r.id
+        ORDER BY r.titulo DESC";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':idUser', $idUser, PDO::PARAM_STR);
         $stmt->execute();
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -105,10 +107,10 @@ class ReceitaModel
         $sql = "SELECT r.*,
                        CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor,
                        u.foto_perfil,
-                       c.nome AS categoria,
-                       c.id   AS idCategoria,
-                       s.nome AS subcategoria,
-                       s.id   AS idSubcategoria
+                       GROUP_CONCAT(DISTINCT c.nome SEPARATOR ', ') AS categoria,
+                       GROUP_CONCAT(DISTINCT c.id SEPARATOR ', ') AS idCategoria,
+                       GROUP_CONCAT(DISTINCT s.nome SEPARATOR ', ') AS subcategoria,
+                       GROUP_CONCAT(DISTINCT s.id SEPARATOR ', ') AS idSubcategoria
                 FROM receitas r
                 JOIN usuarios u ON r.id_usuario = u.id
                 LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
@@ -395,15 +397,12 @@ class ReceitaModel
         $sql = "SELECT s.id
                 FROM receita_subcategoria rs
                 JOIN subcategorias s ON s.id = rs.id_subcategoria
-                WHERE rs.id_receita = :idReceita
-                LIMIT 1";
+                WHERE rs.id_receita = :idReceita";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(':idReceita', $idReceita, PDO::PARAM_INT);
         $stmt->execute();
 
-        $subcategoria = $stmt->fetchColumn();
-
-        return $subcategoria ?: null;
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }

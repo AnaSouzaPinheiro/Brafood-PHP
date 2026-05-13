@@ -53,7 +53,7 @@ class UpdatingRecipeCtl
             $this->diffService->diffSubcategoria(
                 $id,
                 $this->receitaModel->getSubcategoria($id),
-                $dados['subcategoria'] ?? null
+                $dados['idSubcategoria'] ?? null
             );
 
             // 3. Ingredientes

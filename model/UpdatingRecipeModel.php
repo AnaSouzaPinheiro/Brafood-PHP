@@ -45,33 +45,34 @@ class UpdatingRecipeModel
 
     public function vincularSubcategoria($id_receita, $novaSubcategoria)
     {
-        // Recebe o ID diretamente — sem lookup por nome
         $idSubcategoria = (int) $novaSubcategoria;
 
         if (!$idSubcategoria) {
             throw new Exception("ID de subcategoria inválido.");
         }
 
-        // Confirma que o ID existe no banco antes de vincular
-        $stmt = $this->conn->prepare("SELECT id FROM subcategorias WHERE id = ? LIMIT 1");
+        $stmt = $this->conn->prepare("SELECT id 
+                FROM subcategorias 
+                WHERE id = ? 
+                LIMIT 1");
+
         $stmt->execute([$idSubcategoria]);
+
         if (!$stmt->fetchColumn()) {
-            throw new Exception("Subcategoria não encontrada: id = " . $idSubcategoria);
+            throw new Exception(
+                "Subcategoria não encontrada: id = " . $idSubcategoria
+            );
         }
 
-        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM receita_subcategoria WHERE id_receita = ?");
-        $stmt->execute([$id_receita]);
-        $existe = $stmt->fetchColumn();
-
-        if ($existe) {
-            $sql = "UPDATE receita_subcategoria SET id_subcategoria = :id_subcategoria WHERE id_receita = :id_receita";
-        } else {
-            $sql = "INSERT INTO receita_subcategoria (id_receita, id_subcategoria) VALUES (:id_receita, :id_subcategoria)";
-        }
+        $sql = "INSERT INTO receita_subcategoria 
+                (id_receita, id_subcategoria)
+                VALUES (:id_receita, :id_subcategoria)";
 
         $stmt = $this->conn->prepare($sql);
+
         $stmt->bindParam(':id_receita', $id_receita, PDO::PARAM_INT);
         $stmt->bindParam(':id_subcategoria', $idSubcategoria, PDO::PARAM_INT);
+
         $stmt->execute();
     }
 

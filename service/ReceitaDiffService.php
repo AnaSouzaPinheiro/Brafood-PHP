@@ -29,17 +29,20 @@ class ReceitaDiffService
     // Subcategoria
     // -------------------------------------------------------------------------
 
-    public function diffSubcategoria(int $idReceita, ?string $atual, ?string $nova): void
+    public function diffSubcategoria(int $idReceita, array $atuais, array $novas): void 
     {
-        if ($atual && !$nova) {
-            $this->updating->removerSubcategorias($idReceita);
-        } elseif (!$atual && $nova) {
-            $this->updating->vincularSubcategoria($idReceita, $nova);
-        } elseif ($atual && $nova && $atual !== $nova) {
-            $this->updating->removerSubcategorias($idReceita);
-            $this->updating->vincularSubcategoria($idReceita, $nova);
+        sort($atuais);
+        sort($novas);
+
+        if ($atuais === $novas) {
+            return;
         }
-        // Caso $atual === $nova: nenhuma ação necessária
+
+        $this->updating->removerSubcategorias($idReceita);
+
+        foreach ($novas as $idSubcategoria) {
+            $this->updating->vincularSubcategoria($idReceita, $idSubcategoria);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -69,8 +72,8 @@ class ReceitaDiffService
             $titulo       = ($grupo['titulo'] ?? '') !== '' ? $grupo['titulo'] : 'Sem grupo';
             $titulosNovos[] = $titulo;
             $itensNovos   = isset($grupo['itens']) && is_array($grupo['itens'])
-                            ? array_unique($grupo['itens'])
-                            : [];
+                ? array_unique($grupo['itens'])
+                : [];
 
             if (isset($mapa[$titulo])) {
                 $idItem      = $mapa[$titulo]['id_item'];

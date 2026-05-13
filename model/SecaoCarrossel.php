@@ -45,6 +45,7 @@ class SecaoCarrossel
         LEFT JOIN categorias c 
             ON c.id = s.id_categoria
         WHERE rs.secao_id = :secao_id
+        GROUP BY r.id
         ORDER BY rand()
     ");
         $stmt->bindParam(':secao_id', $secao_id, PDO::PARAM_INT);
