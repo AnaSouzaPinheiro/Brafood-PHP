@@ -44,7 +44,7 @@ class UploadService
                 $destino  = $this->uploadDir . $novoNome;
 
                 $imagens[$campo] = move_uploaded_file($_FILES[$campo]['tmp_name'], $destino)
-                    ? $this->baseUrl . $novoNome
+                    ? 'uploads/receitas/' . $novoNome
                     : null;
             } else {
                 $imagens[$campo] = $fallback[$campo] ?? null;
