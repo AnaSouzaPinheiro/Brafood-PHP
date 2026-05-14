@@ -29,6 +29,7 @@ class CategoriaModel
                         WHEN 7 THEN 5
                         WHEN 1 THEN 6
                         WHEN 2 THEN 7
+                        WHEN 8 THEN 8
                     END";
 
         $stmt = $this->conn->prepare($query);

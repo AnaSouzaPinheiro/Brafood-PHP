@@ -15,8 +15,6 @@ if (!isset($_POST['dados'])) {
 }
 
 $dados = json_decode($_POST['dados'], true);
-$protocol  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$uploadUrl = rtrim($_ENV['API_UPLOAD_URL'] ?? "$protocol://{$_SERVER['HTTP_HOST']}/uploads", '/');
 $uploadDir = dirname(__DIR__) . '/uploads/users/';
 
 if (!is_dir($uploadDir)) {
@@ -32,7 +30,8 @@ foreach (['foto_perfil'] as $campo) {
         $destino  = $uploadDir . $novoNome;
 
         if (move_uploaded_file($_FILES[$campo]['tmp_name'], $destino)) {
-            $imagens[$campo] = "$uploadUrl/users/$novoNome";
+            // Armazena apenas o caminho relativo; o front-end prefixará com apiUrl
+            $imagens[$campo] = "uploads/users/$novoNome";
         } else {
             $imagens[$campo] = null;
         }

@@ -19,7 +19,7 @@ $dados = json_decode($_POST['dados'], true);
 
 $uploadService = new UploadService(
     __DIR__ . '/../../uploads/receitas/',
-    $_ENV['API_UPLOAD_URL'] . '/receitas/'
+    'uploads/receitas'
 );
 
 // Sem fallback: é um cadastro novo, não há imagens anteriores

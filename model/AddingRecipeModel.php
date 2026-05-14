@@ -12,14 +12,18 @@ class AddingRecipeModel
     public function criarReceita($dados, $imagens)
     {
         // validações básicas
-        if (empty($imagens)) {
+        if (
+            empty($imagens['imagem1']) &&
+            empty($imagens['imagem2']) &&
+            empty($imagens['imagem3'])
+        ) {
             throw new Exception("É necessário anexar ao menos uma imagem.");
         }
 
         if (empty($dados['autor'])) {
             throw new Exception("ID do usuário não informado.");
         }
-        
+
         // campos obrigatórios
         $camposObrigatorios = ['titulo', 'resumo', 'dificuldade', 'porcoes', 'tipo_porcao'];
 
