@@ -5,15 +5,19 @@
  * Orquestra: dados principais, subcategoria, grupos de ingredientes e etapas de preparo.
  */
 
-require_once __DIR__ . '/../model/AddingRecipeModel.php';
+namespace App\Controller;
+
+use App\Model\AddingRecipeModel;
+use App\Config\Logger;
+use Exception;
 
 class AddingRecipeCtl
 {
     private AddingRecipeModel $addRecipe;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->addRecipe = new AddingRecipeModel($db);
+        $this->addRecipe = new AddingRecipeModel();
     }
 
     public function adicionarReceita(array $dados, array $imagens): array

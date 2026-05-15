@@ -1,5 +1,11 @@
 <?php
 
+namespace App\Service;
+
+use Exception;
+
+require_once __DIR__ . '/../config/config.php';
+
 class AiService
 {
     private $apiKey;
@@ -9,7 +15,7 @@ class AiService
 
     public function __construct()
     {
-        $this->apiKey = $_ENV['OPENROUTER_API_KEY'];
+        $this->apiKey = OPENROUTER_API_KEY;
     }
 
     public function parseRecipe(string $textoReceita): array

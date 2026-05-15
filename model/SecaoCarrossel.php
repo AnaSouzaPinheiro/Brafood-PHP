@@ -1,34 +1,29 @@
 <?php
 
+namespace App\Model;
+
+use App\Config\Database;
+use PDO;
+
 class SecaoCarrossel
 {
-    private $pdo;
+    private $conn;
 
-    /**
-     * @param \PDO|null $pdo  Conexão injetada. Se null, instancia Database internamente
-     *                        (compatibilidade com o código de produção existente).
-     */
-    public function __construct($pdo = null)
+    public function __construct()
     {
-        if ($pdo !== null) {
-            $this->pdo = $pdo;
-        } else {
-            require_once __DIR__ . '/../config/Database.php';
-            $db        = new Database();
-            $this->pdo = $db->getConnection();
-        }
+        $this->conn = Database::getInstance()->getConnection();
     }
 
     public function getAllSecoes()
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM secoes_carrossel ORDER BY ordem ASC");
+        $stmt = $this->conn->prepare("SELECT * FROM secoes_carrossel ORDER BY ordem ASC");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getReceitasBySecao($secao_id)
     {
-        $stmt = $this->pdo->prepare("
+        $stmt = $this->conn->prepare("
         SELECT 
             r.*,
             c.id AS categoria_id,
@@ -55,7 +50,7 @@ class SecaoCarrossel
 
     public function createSecao($titulo, $url_fundo, $fundo_titulo, $ordem = 0)
     {
-        $stmt = $this->pdo->prepare("
+        $stmt = $this->conn->prepare("
             INSERT INTO secoes_carrossel 
             (titulo, url_fundo, fundo_titulo, ordem)
             VALUES (:titulo, :url_fundo, :fundo_titulo, :ordem)
@@ -66,12 +61,12 @@ class SecaoCarrossel
             ':fundo_titulo' => $fundo_titulo,
             ':ordem'        => $ordem,
         ]);
-        return $this->pdo->lastInsertId();
+        return $this->conn->lastInsertId();
     }
 
     public function addReceitaToSecao($secao_id, $receita_id)
     {
-        $stmt = $this->pdo->prepare("
+        $stmt = $this->conn->prepare("
             INSERT INTO receitas_secoes_carrossel (secao_id, receita_id)
             VALUES (:secao_id, :receita_id)
         ");
@@ -83,7 +78,7 @@ class SecaoCarrossel
 
     private function getReceitasAleatorias($limit = 6)
     {
-        $stmt = $this->pdo->prepare("
+        $stmt = $this->conn->prepare("
         SELECT 
             r.id,
             r.titulo,

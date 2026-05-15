@@ -5,7 +5,9 @@
  * Cada seção tem um título, imagem de fundo e uma lista de receitas vinculadas.
  */
 
-require_once __DIR__ . '/../model/SecaoCarrossel.php';
+namespace App\Controller;
+
+use App\Model\SecaoCarrossel;
 
 class SecaoCarrosselCtl
 {

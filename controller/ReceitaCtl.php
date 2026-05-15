@@ -1,17 +1,19 @@
 <?php
 
-require_once __DIR__ . '/../model/ReceitaModel.php';
-require_once __DIR__ . '/../model/CategoriaModel.php';
+namespace App\Controller;
+
+use App\Model\CategoriaModel;
+use App\Model\ReceitaModel;
 
 class ReceitaCtl
 {
     private ReceitaModel $receitaModel;
     private CategoriaModel $categoriaModel;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->receitaModel = new ReceitaModel($db);
-        $this->categoriaModel = new CategoriaModel($db);
+        $this->receitaModel = new ReceitaModel();
+        $this->categoriaModel = new CategoriaModel();
     }
 
     public function listarPorUsuario($idUser)

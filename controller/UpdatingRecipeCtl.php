@@ -6,10 +6,14 @@
  * subcategoria, ingredientes e etapas ao ReceitaDiffService.
  */
 
-require_once __DIR__ . '/../model/UpdatingRecipeModel.php';
-require_once __DIR__ . '/../model/AddingRecipeModel.php';
-require_once __DIR__ . '/../model/ReceitaModel.php';
-require_once __DIR__ . '/../service/ReceitaDiffService.php';
+namespace App\Controller;
+
+use App\Service\ReceitaDiffService;
+use App\Model\UpdatingRecipeModel;
+use App\Model\AddingRecipeModel;
+use App\Model\ReceitaModel;
+use App\Config\Logger;
+use Exception;
 
 class UpdatingRecipeCtl
 {
@@ -17,13 +21,13 @@ class UpdatingRecipeCtl
     private ReceitaModel        $receitaModel;
     private ReceitaDiffService  $diffService;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $updating           = new UpdatingRecipeModel($db);
-        $adding             = new AddingRecipeModel($db);
+        $updating           = new UpdatingRecipeModel();
+        $adding             = new AddingRecipeModel();
 
         $this->model        = $updating;
-        $this->receitaModel = new ReceitaModel($db);
+        $this->receitaModel = new ReceitaModel();
         $this->diffService  = new ReceitaDiffService($updating, $adding);
     }
 

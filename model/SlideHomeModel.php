@@ -1,27 +1,22 @@
 <?php
 
-class SlideHome
-{
-    private $pdo;
+namespace App\Model;
 
-    /**
-     * @param \PDO|null $pdo  Conexão injetada. Se null, instancia Database internamente
-     *                        (compatibilidade com o código de produção existente).
-     */
-    public function __construct($pdo = null)
+use App\Config\Database;
+use PDO;
+
+class SlideHomeModel
+{
+    private $conn;
+
+    public function __construct()
     {
-        if ($pdo !== null) {
-            $this->pdo = $pdo;
-        } else {
-            require_once __DIR__ . '/../config/Database.php';
-            $db        = new Database();
-            $this->pdo = $db->getConnection();
-        }
+        $this->conn = Database::getInstance()->getConnection();
     }
 
     public function getRandomRecipes($limit = 5)
     {
-        $stmt = $this->pdo->prepare(
+        $stmt = $this->conn->prepare(
             "SELECT id, titulo, resumo, imagem1, qtd_fav 
              FROM receitas 
              ORDER BY RAND() 

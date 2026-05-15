@@ -10,9 +10,11 @@
  * Extraído de UpdatingRecipeCtl para separar responsabilidades e facilitar testes.
  */
 
-require_once __DIR__ . '/../model/UpdatingRecipeModel.php';
-require_once __DIR__ . '/../model/AddingRecipeModel.php';
-require_once __DIR__ . '/../model/ReceitaModel.php';
+namespace App\Service;
+
+use App\Model\UpdatingRecipeModel;
+use App\Model\AddingRecipeModel;
+use App\Model\ReceitaModel;
 
 class ReceitaDiffService
 {

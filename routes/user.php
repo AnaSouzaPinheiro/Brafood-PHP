@@ -1,12 +1,10 @@
 <?php
 
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/env.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../controller/UserCtl.php';
+require_once __DIR__ . '/../config/core.php';
 
-$db  = (new Database())->getConnection();
-$ctl = new UserCtl($db);
+use App\Controller\UserCtl;
+
+$ctl = new UserCtl();
 $id  = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 $response = $ctl->buscarUsuarioPorId($id);

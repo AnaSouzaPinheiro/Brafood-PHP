@@ -1,12 +1,18 @@
 <?php
 
+namespace App\Model;
+
+use App\Config\Database;
+use Exception;
+use PDO;
+
 class AddingRecipeModel
 {
     private $conn;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->conn = $db;
+        $this->conn = Database::getInstance()->getConnection();
     }
 
     public function criarReceita($dados, $imagens)

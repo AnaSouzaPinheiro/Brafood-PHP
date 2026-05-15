@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Config;
+
 /**
  * Logger estático do BraFood.
  *

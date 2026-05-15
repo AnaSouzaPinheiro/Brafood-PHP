@@ -1,14 +1,16 @@
 <?php
 
-require_once __DIR__ . '/../model/CategoriaModel.php';
+namespace App\Controller;
+
+use App\Model\CategoriaModel;
 
 class CategoriaCtl
 {
     private CategoriaModel $categoriaModel;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->categoriaModel = new CategoriaModel($db);
+        $this->categoriaModel = new CategoriaModel();
     }
 
     public function listarCategorias()

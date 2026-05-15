@@ -9,14 +9,19 @@
  * este controller totalmente testável sem output de buffer.
  */
 
+namespace App\Controller;
+
+use App\Model\ComentarioModel;
+use App\Config\Logger;
+use Exception;
+
 class ComentariosCtl
 {
     private $model;
 
-    public function __construct($db)
+    public function __construct()
     {
-        require_once __DIR__ . '/../model/ComentarioModel.php';
-        $this->model = new ComentarioModel($db);
+        $this->model = new ComentarioModel();
     }
 
     /**

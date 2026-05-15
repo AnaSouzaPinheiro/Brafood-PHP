@@ -1,15 +1,11 @@
 <?php
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/env.php';
+
+require_once __DIR__ . '/../config/core.php';
+
+use App\Controller\ComentariosCtl;
 session_start();
 
-require_once '../config/Database.php';
-require_once '../config/Logger.php';
-require_once '../controller/ComentariosCtl.php';
-
-$database   = new Database();
-$db         = $database->getConnection();
-$controller = new ComentariosCtl($db);
+$controller = new ComentariosCtl();
 
 switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':

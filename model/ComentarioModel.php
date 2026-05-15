@@ -1,12 +1,16 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
+
+namespace App\Model;
+
+use App\Config\Database;
+use PDO;
 
 class ComentarioModel {
     private $conn;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->conn = $db;
+        $this->conn = Database::getInstance()->getConnection();
     }
 
     public function buscarComentarioPorReceita(int $idReceita): array {

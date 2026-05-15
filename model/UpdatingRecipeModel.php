@@ -1,12 +1,18 @@
 <?php
 
+namespace App\Model;
+
+use App\Config\Database;
+use Exception;
+use PDO;
+
 class UpdatingRecipeModel
 {
     private $conn;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->conn = $db;
+        $this->conn = Database::getInstance()->getConnection();
     }
 
     public function updateReceita($id, $idUser, $titulo, $resumo, $dificuldade, $tempo_hora, $tempo_min, $porcoes, $tipo_porcao, $imagem1, $imagem2, $imagem3)

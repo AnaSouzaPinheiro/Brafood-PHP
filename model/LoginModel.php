@@ -1,11 +1,17 @@
 <?php
+
+namespace App\Model;
+
+use App\Config\Database;
+use PDO;
+
 class LoginModel
 {
     private $conn;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->conn = $db;
+        $this->conn = Database::getInstance()->getConnection();
     }
 
     public function cadastrar($nome, $email, $senha)

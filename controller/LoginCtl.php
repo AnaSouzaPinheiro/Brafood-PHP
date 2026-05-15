@@ -5,8 +5,10 @@
  * Depende de LoginModel para acesso ao banco.
  */
 
-require_once __DIR__ . '/../model/LoginModel.php';
+namespace App\Controller;
 
+use App\Model\LoginModel;
+use App\Config\Logger;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -14,9 +16,9 @@ class LoginCtl
 {
     private LoginModel $model;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->model = new LoginModel($db);
+        $this->model = new LoginModel();
     }
 
     public function login(array $data): array

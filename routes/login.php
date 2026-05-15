@@ -1,15 +1,12 @@
 <?php
 
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/env.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../config/Logger.php';
-require_once __DIR__ . '/../controller/LoginCtl.php';
+require_once __DIR__ . '/../config/core.php';
+
+use App\Controller\LoginCtl;
 
 header('Content-Type: application/json; charset=UTF-8');
 
-$db   = (new Database())->getConnection();
-$ctl  = new LoginCtl($db);
+$ctl  = new LoginCtl();
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
 // Cadastro — detectado pela presença do campo confirmarSenha

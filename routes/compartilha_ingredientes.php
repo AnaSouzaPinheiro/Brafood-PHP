@@ -1,13 +1,10 @@
 <?php
 
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/env.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../config/Logger.php';
-require_once __DIR__ . '/../controller/FavoritoCtl.php';
+require_once __DIR__ . '/../config/core.php';
 
-$db         = (new Database())->getConnection();
-$controller = new FavoritoCtl($db);
+use App\Controller\FavoritoCtl;
+
+$controller = new FavoritoCtl();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);

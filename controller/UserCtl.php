@@ -3,16 +3,19 @@
 /**
  * Controla a edição do perfil do usuário.
  */
+namespace App\Controller;
 
-require_once __DIR__ . '/../model/UserModel.php';
+use App\Model\UserModel;
+use Exception;
+use App\Config\Logger;
 
 class UserCtl
 {
     private UserModel $model;
 
-    public function __construct($db)
+    public function __construct()
     {
-        $this->model = new UserModel($db);
+        $this->model = new UserModel();
     }
 
     public function editarUsuario(array $dados): array

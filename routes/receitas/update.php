@@ -1,14 +1,11 @@
 <?php
 
-require_once __DIR__ . '/../../config/cors.php';
-require_once __DIR__ . '/../../config/env.php';
-require_once __DIR__ . '/../../config/Database.php';
-require_once __DIR__ . '/../../config/Logger.php';
-require_once __DIR__ . '/../../controller/UpdatingRecipeCtl.php';
-require_once __DIR__ . '/../../service/UploadService.php';
+require_once __DIR__ . '/../../config/core.php';
 
-$db  = (new Database())->getConnection();
-$ctl = new UpdatingRecipeCtl($db);
+use App\Controller\UpdatingRecipeCtl;
+use App\Service\UploadService;
+
+$ctl = new UpdatingRecipeCtl();
 
 if (!isset($_POST['dados'])) {
     echo json_encode(['success' => false, 'message' => 'Nenhum dado recebido']);

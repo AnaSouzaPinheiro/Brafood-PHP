@@ -1,45 +1,71 @@
 <?php
 
-require_once __DIR__ . '/Logger.php';
+namespace App\Config;
+
+use PDO;
+use PDOException;
+use App\Config\Logger;
+
+require_once __DIR__ . '/config.php';
 
 class Database
 {
+    private static ?Database $instance = null;
+    private ?PDO $conn = null;
+
     private $host;
     private $db_name;
     private $port;
     private $username;
     private $password;
-    public $conn;
 
-    public function __construct()
+    // 🔒 1. construtor privado (REGRA do Singleton)
+    private function __construct()
     {
-        $this->host     = $_ENV['DB_HOST']     ?? 'localhost';
-        $this->db_name  = $_ENV['DB_NAME']     ?? 'brafood_php';
-        $this->port     = $_ENV['DB_PORT']     ?? 3306;
-        $this->username = $_ENV['DB_USER']     ?? 'root';
-        $this->password = $_ENV['DB_PASSWORD'] ?? '';
+        $this->host     = DB_HOST;
+        $this->db_name  = DB_NAME;
+        $this->port     = DB_PORT;
+        $this->username = DB_USER;
+        $this->password = DB_PASSWORD;
     }
 
-    public function getConnection()
+    // 🚪 2. ponto único de acesso
+    public static function getInstance(): Database
     {
-        $this->conn = null;
+        if (self::$instance === null) {
+            self::$instance = new Database();
+        }
+
+        return self::$instance;
+    }
+
+    // 🔌 conexão única reutilizável
+    public function getConnection(): PDO
+    {
+        if ($this->conn !== null) {
+            return $this->conn;
+        }
+
         try {
             $this->conn = new PDO(
                 "mysql:host={$this->host};dbname={$this->db_name};port={$this->port}",
                 $this->username,
                 $this->password
             );
+
             $this->conn->exec("set names utf8");
+
         } catch (PDOException $exception) {
-            echo $exception->getMessage();
-            exit;
-            /*Logger::fatal('database', 'Falha na conexão com o banco', [
+
+            Logger::fatal('database', 'Falha na conexão com o banco', [
                 'message' => $exception->getMessage()
             ]);
+
             http_response_code(500);
             echo json_encode(['error' => 'Erro interno no servidor.']);
-            exit;*/
+            exit;
         }
+
         return $this->conn;
     }
 }

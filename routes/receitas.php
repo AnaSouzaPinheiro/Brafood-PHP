@@ -1,12 +1,10 @@
 <?php
 
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/env.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../controller/ReceitaCtl.php';
+require_once __DIR__ . '/../config/core.php';
 
-$db       = (new Database())->getConnection();
-$ctl      = new ReceitaCtl($db);
+use App\Controller\ReceitaCtl;
+
+$ctl      = new ReceitaCtl();
 $pesquisa = $_GET['pesquisa'] ?? '';
 
 $response = $ctl->listarTodas($pesquisa);

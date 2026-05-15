@@ -1,13 +1,10 @@
 <?php
 
-require_once __DIR__ . '/../config/env.php';
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../controller/LoginCtl.php';
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../config/core.php';
 
-$db   = (new Database())->getConnection();
-$ctl  = new LoginCtl($db);
+use App\Controller\LoginCtl;
+
+$ctl  = new LoginCtl();
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $response = $ctl->enviarRecuperacaoSenha($data);

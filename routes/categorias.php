@@ -1,12 +1,10 @@
 <?php
 
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/env.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../controller/CategoriaCtl.php';
+require_once __DIR__ . '/../config/core.php';
 
-$db  = (new Database())->getConnection();
-$ctl = new CategoriaCtl($db);
+use App\Controller\CategoriaCtl;
+
+$ctl = new CategoriaCtl();
 
 if (isset($_GET['id'])) {
     $response = $ctl->buscarCategoriaPorId(intval($_GET['id']));

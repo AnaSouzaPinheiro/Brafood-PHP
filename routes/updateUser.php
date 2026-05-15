@@ -1,12 +1,11 @@
 <?php
-require_once __DIR__ . '/../config/env.php';
-require_once __DIR__ . '/../config/cors.php';
-require_once __DIR__ . '/../config/Database.php';
-require_once __DIR__ . '/../config/Logger.php';
-require_once __DIR__ . '/../controller/UserCtl.php';
 
-$db  = (new Database())->getConnection();
-$ctl = new UserCtl($db);
+require_once __DIR__ . '/../config/core.php';
+
+use App\Controller\UserCtl;
+use App\Config\Logger;
+
+$ctl = new UserCtl();
 
 if (!isset($_POST['dados'])) {
     http_response_code(400);

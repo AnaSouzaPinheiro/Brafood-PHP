@@ -6,16 +6,19 @@
  * listagem dos favoritos do usuário e geração de link de compartilhamento via WhatsApp.
  */
 
+namespace App\Controller;
+
+use App\Model\FavoritoModel;
+use App\Config\Logger;
+use Exception;
+
 class FavoritoCtl
 {
     private $model;
-    private $db;
 
-    public function __construct($db)
+    public function __construct()
     {
-        require_once __DIR__ . '/../model/FavoritoModel.php';
-        $this->model = new FavoritoModel($db);
-        $this->db    = $db;
+        $this->model = new FavoritoModel();
     }
 
     public function check(int $idUser, int $idReceita): array
@@ -26,42 +29,22 @@ class FavoritoCtl
     public function add(int $idUser, int $idReceita): array
     {
         try {
-            $this->db->beginTransaction();
-
-            if ($this->model->isFavorite($idUser, $idReceita)) {
-                $this->db->rollBack();
-                return ['success' => false, 'message' => 'Já favoritado'];
-            }
-
-            $this->model->add($idUser, $idReceita);
-
-            $stmt = $this->db->prepare("
-                UPDATE receitas
-                SET qtd_fav = qtd_fav + 1
-                WHERE id = :idReceita
-            ");
-            $stmt->execute([':idReceita' => $idReceita]);
-
-            if ($stmt->rowCount() === 0) {
-                throw new Exception('Receita não encontrada');
-            }
-
-            $this->db->commit();
+            $result = $this->model->addWithIncrement($idUser, $idReceita);
 
             Logger::info('favorito', 'Receita favoritada', [
                 'usuario_id' => $idUser,
                 'receita_id' => $idReceita
             ]);
 
-            return ['success' => true];
-
+            return $result;
         } catch (Exception $e) {
-            $this->db->rollBack();
+
             Logger::error('favorito', 'Erro ao favoritar receita', [
                 'usuario_id' => $idUser,
                 'receita_id' => $idReceita,
-                'error'       => $e->getMessage()
+                'error' => $e->getMessage()
             ]);
+
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -69,33 +52,22 @@ class FavoritoCtl
     public function remove(int $idUser, int $idReceita): array
     {
         try {
-            $this->db->beginTransaction();
-
-            $this->model->remove($idUser, $idReceita);
-
-            $stmt = $this->db->prepare("
-                UPDATE receitas
-                SET qtd_fav = GREATEST(qtd_fav - 1, 0)
-                WHERE id = :idReceita
-            ");
-            $stmt->execute([':idReceita' => $idReceita]);
-
-            $this->db->commit();
+            $result = $this->model->removeWithDecrement($idUser, $idReceita);
 
             Logger::info('favorito', 'Receita desfavoritada', [
                 'usuario_id' => $idUser,
                 'receita_id' => $idReceita
             ]);
 
-            return ['success' => true];
-
+            return $result;
         } catch (Exception $e) {
-            $this->db->rollBack();
+
             Logger::error('favorito', 'Erro ao desfavoritar receita', [
                 'usuario_id' => $idUser,
                 'receita_id' => $idReceita,
-                'error'       => $e->getMessage()
+                'error' => $e->getMessage()
             ]);
+
             return ['success' => false];
         }
     }

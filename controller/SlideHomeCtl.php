@@ -4,7 +4,9 @@
  * Controla os slides exibidos no banner rotativo da home.
  */
 
-require_once __DIR__ . '/../model/SlideHomeModel.php';
+namespace App\Controller;
+
+use App\Model\SlideHomeModel;
 
 class SlideHomeCtl
 {
@@ -12,7 +14,7 @@ class SlideHomeCtl
 
     public function __construct()
     {
-        $this->model = new SlideHome();
+        $this->model = new SlideHomeModel();
     }
 
     public function index(): array

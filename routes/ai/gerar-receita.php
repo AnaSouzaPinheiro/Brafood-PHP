@@ -1,8 +1,8 @@
 <?php
 
-require_once __DIR__ . '/../../config/cors.php';
-require_once __DIR__ . '/../../config/env.php';
-require_once __DIR__ . '/../../service/AiService.php';
+require_once __DIR__ . '/../config/core.php';
+
+use App\Service\AiService;
 
 $input = json_decode(file_get_contents("php://input"), true);
 
