@@ -2,7 +2,8 @@
 
 require_once __DIR__ . '/Logger.php';
 
-class Database {
+class Database
+{
     private $host;
     private $db_name;
     private $port;
@@ -30,14 +31,15 @@ class Database {
             );
             $this->conn->exec("set names utf8");
         } catch (PDOException $exception) {
-            Logger::fatal('database', 'Falha na conexão com o banco', [
+            echo $exception->getMessage();
+            exit;
+            /*Logger::fatal('database', 'Falha na conexão com o banco', [
                 'message' => $exception->getMessage()
             ]);
             http_response_code(500);
             echo json_encode(['error' => 'Erro interno no servidor.']);
-            exit;
+            exit;*/
         }
         return $this->conn;
     }
 }
-?>
