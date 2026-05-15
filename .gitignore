@@ -3,6 +3,7 @@
 
 # Variáveis de ambiente
 .env
+config/config.php
 
 # Logs gerados em runtime
 *.log
