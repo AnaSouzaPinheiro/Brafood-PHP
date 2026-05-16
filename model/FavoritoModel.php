@@ -76,7 +76,7 @@ class FavoritoModel
 
             if ($check) {
                 $this->conn->rollBack();
-                return ['success' => false, 'message' => 'Já favoritado'];
+                return ['success' => false, 'mensagem' => 'Já favoritado'];
             }
 
             $this->add($idUser, $idReceita);

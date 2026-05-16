@@ -10,7 +10,7 @@ use App\Service\ImageCleanupService;
 $ctl = new UpdatingRecipeCtl();
 
 if (!isset($_POST['dados'])) {
-    echo json_encode(['success' => false, 'message' => 'Nenhum dado recebido']);
+    echo json_encode(['success' => false, 'mensagem' => 'Nenhum dado recebido']);
     exit;
 }
 
@@ -57,6 +57,6 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => 'Erro no servidor: ' . $e->getMessage()
+        'mensagem' => 'Erro no servidor: ' . $e->getMessage()
     ]);
 }

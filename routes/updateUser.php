@@ -10,7 +10,7 @@ $ctl = new UserCtl();
 
 if (!isset($_POST['dados'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Nenhum dado recebido']);
+    echo json_encode(['success' => false, 'mensagem' => 'Nenhum dado recebido']);
     exit;
 }
 
@@ -61,7 +61,7 @@ try {
     ob_clean();
     echo json_encode([
         'success'  => false,
-        'message' => 'Erro no servidor.'
+        'mensagem' => 'Erro no servidor.'
     ]);
     exit;
 }

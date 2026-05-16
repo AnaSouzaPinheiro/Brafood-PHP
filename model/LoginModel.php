@@ -49,7 +49,7 @@ class LoginModel
         if ($user && password_verify($senha, $user['senha'])) {
             return ['success' => true, 'id' => $user['id']];
         }
-        return ['success' => false, 'message' => 'Email ou senha incorretos'];
+        return ['success' => false, 'mensagem' => 'Email ou senha incorretos'];
     }
 
     private function validarSenha($senha)
@@ -74,7 +74,7 @@ class LoginModel
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
-            return ["success" => false, "message" => "Email não encontrado."];
+            return ["success" => false, "mensagem" => "Email não encontrado."];
         }
 
         $token = bin2hex(random_bytes(20));
@@ -90,7 +90,7 @@ class LoginModel
 
         return [
             "success" => true,
-            "message" => "Token gerado.",
+            "mensagem" => "Token gerado.",
             "token" => $token
         ];
     }
@@ -98,7 +98,7 @@ class LoginModel
     public function resetarSenha($token, $senha, $confirmarSenha)
     {
         if ($senha !== $confirmarSenha) {
-            return ["success" => false, "message" => "As senhas não coincidem."];
+            return ["success" => false, "mensagem" => "As senhas não coincidem."];
         }
 
         $erros = $this->validarSenha($senha);
@@ -119,7 +119,7 @@ class LoginModel
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
-            return ["success" => false, "message" => "Token inválido ou expirado."];
+            return ["success" => false, "mensagem" => "Token inválido ou expirado."];
         }
 
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
@@ -133,6 +133,6 @@ class LoginModel
         $stmt->bindParam(':id', $user['id']);
         $stmt->execute();
 
-        return ["success" => true, "message" => "Senha redefinida com sucesso!"];
+        return ["success" => true, "mensagem" => "Senha redefinida com sucesso!"];
     }
 }

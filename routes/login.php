@@ -13,7 +13,7 @@ $data = json_decode(file_get_contents('php://input'), true) ?? [];
 if (isset($data['confirmarSenha'])) {
     if ($data['senha'] !== $data['confirmarSenha']) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'As senhas não coincidem.']);
+        echo json_encode(['success' => false, 'mensagem' => 'As senhas não coincidem.']);
         exit;
     }
 
