@@ -115,6 +115,7 @@ class ReceitaModel
         $sql = "SELECT r.*,
                        CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor,
                        u.foto_perfil,
+                       u.bio,
                        GROUP_CONCAT(DISTINCT c.nome SEPARATOR ', ') AS categoria,
                        GROUP_CONCAT(DISTINCT c.id SEPARATOR ', ') AS idCategoria,
                        GROUP_CONCAT(DISTINCT s.nome SEPARATOR ', ') AS subcategoria,
@@ -292,6 +293,12 @@ class ReceitaModel
         try {
             $this->conn->beginTransaction();
 
+            // Busca imagens antes de excluir para poder apagá-las do disco depois
+            $stmtImg = $this->conn->prepare("SELECT imagem1, imagem2, imagem3 FROM receitas WHERE id = :id");
+            $stmtImg->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmtImg->execute();
+            $imagensReceita = $stmtImg->fetch(PDO::FETCH_ASSOC);
+
             $sql = "DELETE dp
                 FROM descricoes_preparo dp
                 JOIN etapas_preparo ep ON ep.id_secao_preparo = dp.id_etapa
@@ -328,7 +335,16 @@ class ReceitaModel
             $stmt->execute();
 
             $this->conn->commit();
-            return true;
+
+            // Retorna os caminhos das imagens para o controller apagar do disco
+            return [
+                'deleted'  => true,
+                'imagens'  => [
+                    $imagensReceita['imagem1'] ?? null,
+                    $imagensReceita['imagem2'] ?? null,
+                    $imagensReceita['imagem3'] ?? null,
+                ],
+            ];
         } catch (Exception $e) {
             $this->conn->rollBack();
             return false;

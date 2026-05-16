@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Model\CategoriaModel;
 use App\Model\ReceitaModel;
+use App\Service\ImageCleanupService;
 
 class ReceitaCtl
 {
@@ -106,9 +107,9 @@ class ReceitaCtl
             ];
         }
 
-        $receita = $this->receitaModel->excluirReceita($id);
+        $resultado = $this->receitaModel->excluirReceita($id);
 
-        if (!$receita) {
+        if (!$resultado) {
             http_response_code(404);
 
             return [
@@ -116,6 +117,14 @@ class ReceitaCtl
             ];
         }
 
-        return $receita;
+        // Apaga as imagens da receita excluída do disco
+        if (!empty($resultado['imagens'])) {
+            ImageCleanupService::apagarArquivos(
+                $resultado['imagens'],
+                dirname(__DIR__, 2) . '/'
+            );
+        }
+
+        return ['success' => true, 'mensagem' => 'Receita excluída com sucesso.'];
     }
 }

@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../config/core.php';
 
 use App\Controller\UserCtl;
+use App\Service\ImageCleanupService;
 use App\Config\Logger;
 
 $ctl = new UserCtl();
@@ -19,6 +20,9 @@ $uploadDir = dirname(__DIR__) . '/uploads/users/';
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
+
+// ── Foto atual antes de qualquer alteração ───────────────────────────────────
+$fotoAntiga = $dados['foto_perfil'] ?? null; // front envia o valor atual
 
 $imagens = [];
 
@@ -43,6 +47,11 @@ try {
     $dados['foto_perfil'] = $imagens['foto_perfil'] ?? $dados['foto_perfil'] ?? null;
 
     $result = $ctl->editarUsuario($dados);
+
+    // ── Apaga a foto antiga se foi substituída por uma nova ──────────────────
+    if (($result['success'] ?? false) && $fotoAntiga !== null && $fotoAntiga !== $dados['foto_perfil']) {
+        ImageCleanupService::apagarArquivos([$fotoAntiga], dirname(__DIR__) . '/');
+    }
 
     ob_clean();
     echo json_encode($result);
