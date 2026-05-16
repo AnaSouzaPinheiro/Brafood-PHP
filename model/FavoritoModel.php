@@ -51,10 +51,17 @@ class FavoritoModel
 
     public function listByUser($idUser)
     {
-        $sql = "SELECT r.*
+        $sql = "SELECT r.*,
+                    c.nome AS categoria
                 FROM favoritos f
-                JOIN receitas r ON r.id = f.id_receita
-                WHERE f.id_usuario = :idUser";
+                LEFT JOIN receitas r ON r.id = f.id_receita
+                LEFT JOIN usuarios u ON r.id_usuario = u.id
+                LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+                LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+                LEFT JOIN categorias c ON c.id = s.id_categoria
+                WHERE f.id_usuario = :idUser
+                GROUP BY r.id";
+
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':idUser' => $idUser]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

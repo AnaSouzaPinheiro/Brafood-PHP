@@ -40,6 +40,7 @@ class ReceitaModel
             LEFT JOIN categorias c ON c.id = s.id_categoria
             WHERE r.titulo LIKE :pesquisa
                OR c.nome LIKE :pesquisa
+            GROUP BY r.id
             ORDER BY r.titulo ASC";
 
             $stmt = $this->conn->prepare($query);

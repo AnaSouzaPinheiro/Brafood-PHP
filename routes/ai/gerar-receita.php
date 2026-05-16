@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../config/core.php';
+require_once __DIR__ . '/../../config/core.php';
 
 use App\Service\AiService;
 
