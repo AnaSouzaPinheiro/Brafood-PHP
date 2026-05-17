@@ -194,7 +194,7 @@ class ReceitaModel
         return $receita;
     }
 
-    public function listarComCategoria($idCategoria, $ordenar = 'nome', $subcategorias = [])
+    public function listarComCategoria($idCategoria, $ordenar = 'nome', $subcategorias = [], $dificuldades = [], $tiposPorcao = [], $tempoMax = null)
     {
         $ordenacoes = [
             'mais_novos'      => 'r.data_criacao DESC',
@@ -234,14 +234,12 @@ class ReceitaModel
 
         if (!empty($subcategorias)) {
             $placeholders = [];
-
             foreach ($subcategorias as $i => $sub) {
                 $key = ":sub{$i}";
                 $placeholders[] = $key;
                 $params[$key] = (int)$sub;
             }
-
-            $sql .= "AND EXISTS (
+            $sql .= " AND EXISTS (
                     SELECT 1
                     FROM receita_subcategoria rs2
                     WHERE rs2.id_receita = r.id
@@ -249,12 +247,41 @@ class ReceitaModel
                 )";
         }
 
+        if (!empty($dificuldades)) {
+            $placeholders = [];
+            foreach ($dificuldades as $i => $dif) {
+                $key = ":dif{$i}";
+                $placeholders[] = $key;
+                $params[$key] = (int)$dif;
+            }
+            $sql .= " AND r.dificuldade IN (" . implode(',', $placeholders) . ")";
+        }
+
+        if (!empty($tiposPorcao)) {
+            $placeholders = [];
+            foreach ($tiposPorcao as $i => $tipo) {
+                $key = ":tipo{$i}";
+                $placeholders[] = $key;
+                $params[$key] = $tipo;
+            }
+            $sql .= " AND r.tipo_porcao IN (" . implode(',', $placeholders) . ")";
+        }
+
+        if ($tempoMax !== null) {
+            $sql .= " AND (r.tempo_hora * 60 + r.tempo_min) <= :tempo_max";
+            $params[':tempo_max'] = $tempoMax;
+        }
+
         $sql .= " ORDER BY $orderBy";
 
         $stmt = $this->conn->prepare($sql);
 
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            if (in_array($key, [':categoria', ':tempo_max']) || str_starts_with($key, ':dif') || str_starts_with($key, ':sub')) {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($key, $value, PDO::PARAM_STR);
+            }
         }
 
         $stmt->execute();

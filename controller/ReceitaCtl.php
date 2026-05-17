@@ -30,7 +30,7 @@ class ReceitaCtl
         return $this->receitaModel->listByUser($idUser);
     }
 
-    public function listarPorCategoria($id, $ordenar = 'nome', $subcategorias = [])
+    public function listarPorCategoria($id, $ordenar = 'nome', $subcategorias = [], $dificuldades = [], $tiposPorcao = [], $tempoMax = null)
     {
         if (!$id) {
             http_response_code(400);
@@ -53,7 +53,10 @@ class ReceitaCtl
         return $this->receitaModel->listarComCategoria(
             $id,
             $ordenar,
-            $subcategorias
+            $subcategorias,
+            $dificuldades,
+            $tiposPorcao,
+            $tempoMax
         );
     }
 
