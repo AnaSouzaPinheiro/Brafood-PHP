@@ -13,7 +13,11 @@ $idCategoria = isset($_GET['id_categoria']) ? (int)$_GET['id_categoria'] : null;
 
 switch ($method) {
     case 'GET':
-        $response = $ctl->listarSubcategorias($idCategoria);
+        if (!empty($_GET['com_receitas'])) {
+            $response = $ctl->listarSubcategoriasComReceitas($idCategoria);
+        } else {
+            $response = $ctl->listarSubcategorias($idCategoria);
+        }
         break;
 
     case 'POST':

@@ -26,8 +26,21 @@ class AdminSecaoModel
     public function listarSecoes(): array
     {
         $stmt = $this->conn->prepare(
-            "SELECT id, titulo, url_fundo, cor_fundo, fundo_titulo,
-                    id_categoria, id_subcategoria, modo, ordem
+            "SELECT id,
+                titulo,
+
+                titulo_cor_tipo,
+                titulo_cor_solid,
+                titulo_gradiente_1,
+                titulo_gradiente_2,
+
+                url_fundo,
+                cor_fundo,
+                fundo_titulo,
+                id_categoria,
+                id_subcategoria,
+                modo,
+                ordem
              FROM secoes_carrossel
              ORDER BY ordem ASC, id ASC"
         );
@@ -51,11 +64,32 @@ class AdminSecaoModel
     {
         $stmt = $this->conn->prepare(
             "INSERT INTO secoes_carrossel
-                (titulo, url_fundo, cor_fundo, fundo_titulo, id_categoria, id_subcategoria, modo, ordem)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            (
+                titulo,
+
+                titulo_cor_tipo,
+                titulo_cor_solid,
+                titulo_gradiente_1,
+                titulo_gradiente_2,
+
+                url_fundo,
+                cor_fundo,
+                fundo_titulo,
+                id_categoria,
+                id_subcategoria,
+                modo,
+                ordem
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->execute([
             $data['titulo'],
+
+            $data['titulo_cor_tipo']   ?? 'gradiente',
+            $data['titulo_cor_solid']  ?? null,
+            $data['titulo_gradiente_1'] ?? '#8aabff',
+            $data['titulo_gradiente_2'] ?? '#0049ff',
+
             $data['url_fundo']       ?? null,
             $data['cor_fundo']       ?? null,
             $data['fundo_titulo']    ?? null,
@@ -71,8 +105,15 @@ class AdminSecaoModel
     {
         $stmt = $this->conn->prepare(
             "UPDATE secoes_carrossel SET
-                titulo          = ?,
-                url_fundo       = ?,
+
+                titulo = ?,
+
+                titulo_cor_tipo = ?,
+                titulo_cor_solid = ?,
+                titulo_gradiente_1 = ?,
+                titulo_gradiente_2 = ?,
+
+                url_fundo = ?,
                 cor_fundo       = ?,
                 fundo_titulo    = ?,
                 id_categoria    = ?,
@@ -83,6 +124,12 @@ class AdminSecaoModel
         );
         return $stmt->execute([
             $data['titulo'],
+
+            $data['titulo_cor_tipo']    ?? 'gradiente',
+            $data['titulo_cor_solid']   ?? null,
+            $data['titulo_gradiente_1'] ?? '#8aabff',
+            $data['titulo_gradiente_2'] ?? '#0049ff',
+
             $data['url_fundo']       ?? null,
             $data['cor_fundo']       ?? null,
             $data['fundo_titulo']    ?? null,
@@ -90,6 +137,7 @@ class AdminSecaoModel
             $data['id_subcategoria'] ?? null,
             $data['modo']            ?? 'aleatorio',
             $data['ordem']           ?? 99,
+
             $id,
         ]);
     }

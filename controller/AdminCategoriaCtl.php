@@ -34,6 +34,11 @@ class AdminCategoriaCtl
         return $this->model->listarCategorias();
     }
 
+    public function listarCategoriasComReceitas(): array
+    {
+        return $this->model->listarCategoriasComReceitas();
+    }
+
     public function buscarCategoria(int $id): array
     {
         $cat = $this->model->buscarCategoriaPorId($id);
@@ -88,6 +93,11 @@ class AdminCategoriaCtl
     public function listarSubcategorias(?int $idCategoria = null): array
     {
         return $this->model->listarSubcategorias($idCategoria);
+    }
+
+    public function listarSubcategoriasComReceitas(?int $idCategoria = null): array
+    {
+        return $this->model->listarSubcategoriasComReceitas($idCategoria);
     }
 
     public function criarSubcategoria(array $data): array

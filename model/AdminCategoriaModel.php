@@ -27,6 +27,24 @@ class AdminCategoriaModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Apenas categorias que têm ao menos uma receita vinculada.
+     * Usado nos selects do painel admin para evitar seções vazias.
+     */
+    public function listarCategoriasComReceitas(): array
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT DISTINCT c.id, c.nome, c.icone, c.fundo, c.css_class,
+                    c.ordem, c.cor_primaria, c.gradiente_hover
+             FROM categorias c
+             INNER JOIN subcategorias s      ON s.id_categoria = c.id
+             INNER JOIN receita_subcategoria rs ON rs.id_subcategoria = s.id
+             ORDER BY c.ordem ASC, c.id ASC"
+        );
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function buscarCategoriaPorId(int $id): ?array
     {
         $stmt = $this->conn->prepare(
@@ -100,6 +118,35 @@ class AdminCategoriaModel
                 "SELECT s.id, s.nome, s.id_categoria, c.nome AS nome_categoria
                  FROM subcategorias s
                  JOIN categorias c ON c.id = s.id_categoria
+                 ORDER BY c.ordem ASC, s.nome ASC"
+            );
+            $stmt->execute();
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Apenas subcategorias que têm ao menos uma receita vinculada.
+     * Usado nos selects do painel admin para evitar seções vazias.
+     */
+    public function listarSubcategoriasComReceitas(?int $idCategoria = null): array
+    {
+        if ($idCategoria !== null) {
+            $stmt = $this->conn->prepare(
+                "SELECT DISTINCT s.id, s.nome, s.id_categoria, c.nome AS nome_categoria
+                 FROM subcategorias s
+                 JOIN categorias c ON c.id = s.id_categoria
+                 INNER JOIN receita_subcategoria rs ON rs.id_subcategoria = s.id
+                 WHERE s.id_categoria = ?
+                 ORDER BY s.nome ASC"
+            );
+            $stmt->execute([$idCategoria]);
+        } else {
+            $stmt = $this->conn->prepare(
+                "SELECT DISTINCT s.id, s.nome, s.id_categoria, c.nome AS nome_categoria
+                 FROM subcategorias s
+                 JOIN categorias c ON c.id = s.id_categoria
+                 INNER JOIN receita_subcategoria rs ON rs.id_subcategoria = s.id
                  ORDER BY c.ordem ASC, s.nome ASC"
             );
             $stmt->execute();

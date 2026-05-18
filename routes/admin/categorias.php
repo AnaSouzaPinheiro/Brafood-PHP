@@ -13,9 +13,14 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
 switch ($method) {
     case 'GET':
-        $response = $id
-            ? $ctl->buscarCategoria($id)
-            : $ctl->listarCategorias();
+        if ($id) {
+            $response = $ctl->buscarCategoria($id);
+        } elseif (!empty($_GET['com_receitas'])) {
+            // Retorna apenas categorias/subcategorias que têm receitas cadastradas
+            $response = $ctl->listarCategoriasComReceitas();
+        } else {
+            $response = $ctl->listarCategorias();
+        }
         break;
 
     case 'POST':
