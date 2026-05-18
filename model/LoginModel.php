@@ -41,13 +41,27 @@ class LoginModel
 
     public function login($email, $senha)
     {
-        $stmt = $this->conn->prepare("SELECT id, senha FROM usuarios WHERE email = :email");
+        $stmt = $this->conn->prepare("SELECT id, nome, sobrenome, apelido, email, genero, bio, foto_perfil, is_admin, senha FROM usuarios WHERE email = :email");
         $stmt->bindParam(':email', $email);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($senha, $user['senha'])) {
-            return ['success' => true, 'id' => $user['id']];
+            return [
+                'success' => true,
+                'id'      => $user['id'],
+                'usuario' => [
+                    'id'          => $user['id'],
+                    'nome'        => $user['nome'],
+                    'sobrenome'   => $user['sobrenome'],
+                    'apelido'     => $user['apelido'],
+                    'email'       => $user['email'],
+                    'genero'      => $user['genero'],
+                    'bio'         => $user['bio'],
+                    'foto_perfil' => $user['foto_perfil'],
+                    'is_admin'    => (int)$user['is_admin'],
+                ],
+            ];
         }
         return ['success' => false, 'mensagem' => 'Email ou senha incorretos'];
     }

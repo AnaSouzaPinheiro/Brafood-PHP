@@ -82,8 +82,9 @@ class ImageCleanupService
         $caminhoRelativo = ltrim($caminhoRelativo, '/');
 
         // Só permite apagar dentro de uploads/
+        // Registros antigos podem ter caminho 'assets/imagens/...' — ignoramos silenciosamente
         if (!str_starts_with($caminhoRelativo, 'uploads/')) {
-            Logger::error('ImageCleanupService', 'Tentativa de apagar fora de uploads/', [
+            Logger::warn('ImageCleanupService', 'Caminho fora de uploads/ ignorado (registro legado?)', [
                 'caminho' => $caminhoRelativo,
             ]);
             return;
@@ -96,7 +97,7 @@ class ImageCleanupService
         }
 
         if (@unlink($caminhoAbsoluto)) {
-            Logger::info('ImageCleanupService', 'Imagem órfã removida', [
+            Logger::info('ImageCleanupService', 'Imagem removida', [
                 'arquivo' => $caminhoRelativo,
             ]);
         } else {

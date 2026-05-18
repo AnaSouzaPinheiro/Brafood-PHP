@@ -32,6 +32,13 @@ $response = $ctl->login($data);
 
 if (!($response['success'] ?? false)) {
     http_response_code(401);
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-echo json_encode($response, JSON_UNESCAPED_UNICODE);
+// Retorna dados completos do usuário (incluindo is_admin)
+echo json_encode([
+    'success' => true,
+    'mensagem' => 'Login realizado com sucesso.',
+    'user'    => $response['usuario'],
+], JSON_UNESCAPED_UNICODE);

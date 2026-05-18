@@ -22,21 +22,14 @@ class CategoriaModel
                     c.icone,
                     c.fundo,
                     c.css_class,
+                    c.ordem,
+                    c.cor_primaria,
+                    c.gradiente_hover,
                     s.id AS id_subcategoria,
                     s.nome AS nome_subcategoria
                 FROM categorias c
                 LEFT JOIN subcategorias s ON s.id_categoria = c.id
-                ORDER BY 
-                    CASE c.id
-                        WHEN 3 THEN 1
-                        WHEN 4 THEN 2
-                        WHEN 5 THEN 3
-                        WHEN 6 THEN 4
-                        WHEN 7 THEN 5
-                        WHEN 1 THEN 6
-                        WHEN 2 THEN 7
-                        WHEN 8 THEN 8
-                    END";
+                ORDER BY c.ordem ASC, c.id ASC";
 
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -49,12 +42,15 @@ class CategoriaModel
 
             if (!isset($categorias[$catId])) {
                 $categorias[$catId] = [
-                    'id' => $row['id_categoria'],
-                    'nome' => $row['nome_categoria'],
-                    'icone' => $row['icone'],
-                    'fundo' => isset($row['fundo']) ? $row['fundo'] : null,
-                    'css_class' => $row['css_class'],
-                    'subcategorias' => []
+                    'id'              => $row['id_categoria'],
+                    'nome'            => $row['nome_categoria'],
+                    'icone'           => $row['icone'],
+                    'fundo'           => isset($row['fundo']) ? $row['fundo'] : null,
+                    'css_class'       => $row['css_class'],
+                    'ordem'           => (int)$row['ordem'],
+                    'cor_primaria'    => $row['cor_primaria'] ?? null,
+                    'gradiente_hover' => $row['gradiente_hover'] ?? null,
+                    'subcategorias'   => []
                 ];
             }
 

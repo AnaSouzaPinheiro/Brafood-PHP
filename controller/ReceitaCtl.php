@@ -120,12 +120,22 @@ class ReceitaCtl
             ];
         }
 
-        // Apaga as imagens da receita excluída do disco
-        if (!empty($resultado['imagens'])) {
-            ImageCleanupService::apagarArquivos(
-                $resultado['imagens'],
-                dirname(__DIR__, 2) . '/'
-            );
+        // Apaga as imagens do disco de forma silenciosa — falhas aqui não
+        // devem impedir o retorno de sucesso ao cliente, pois o registro
+        // já foi removido do banco.
+        try {
+            if (!empty($resultado['imagens'])) {
+                ImageCleanupService::apagarArquivos(
+                    $resultado['imagens'],
+                    dirname(__DIR__, 2) . '/'
+                );
+            }
+        } catch (\Throwable $e) {
+            // Loga mas não propaga — a exclusão no banco foi bem-sucedida
+            \App\Config\Logger::error('ReceitaCtl', 'Erro ao apagar imagens após exclusão', [
+                'receita_id' => $id,
+                'message'    => $e->getMessage(),
+            ]);
         }
 
         return ['success' => true, 'mensagem' => 'Receita excluída com sucesso.'];

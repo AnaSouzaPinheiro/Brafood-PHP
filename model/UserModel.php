@@ -17,7 +17,7 @@ class UserModel
     public function buscarUserPorId($id)
     {
         // Dados básicos do usuário
-        $sql = "SELECT id, nome, sobrenome, apelido, email, genero, bio, foto_perfil
+        $sql = "SELECT id, nome, sobrenome, apelido, email, genero, bio, foto_perfil, is_admin
                 FROM usuarios
                 WHERE id = :id";
 
@@ -26,6 +26,9 @@ class UserModel
         $stmt->execute();
 
         $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($usuario) {
+            $usuario['is_admin'] = (int)$usuario['is_admin'];
+        }
         return $usuario;
     }
 

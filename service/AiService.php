@@ -30,6 +30,11 @@ class AiService
 
     private function buildPrompt(string $texto): string
     {
+        // Carrega categorias e subcategorias dinamicamente do banco
+        $dados    = $this->carregarCategoriasDoBanco();
+        $jsonCats = json_encode($dados['categorias'],    JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        $jsonSubs = json_encode($dados['subcategorias'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
         return 'Você é um assistente especializado em transformar receitas em JSON estruturado.
 
 IMPORTANTE:
@@ -54,40 +59,10 @@ TIPOS DE PORÇÃO VÁLIDOS:
 - "Unidades"
 
 CATEGORIAS DISPONÍVEIS:
-[
-  { "id": 1, "nome": "Sobremesas" },
-  { "id": 2, "nome": "Bebidas" },
-  { "id": 3, "nome": "Comemorativas" },
-  { "id": 4, "nome": "Café da Manhã & Lanches" },
-  { "id": 5, "nome": "Pratos Principais" },
-  { "id": 6, "nome": "Vegetarianas & Veganas" },
-  { "id": 7, "nome": "Sopas & Caldos" },
-  { "id": 8, "nome": "Marmitas" }
-]
+' . $jsonCats . '
 
 SUBCATEGORIAS DISPONÍVEIS:
-[
-  { "id": 1, "nome": "Bolos & Tortas" },
-  { "id": 2, "nome": "Cafés & Chás" },
-  { "id": 3, "nome": "Drinks & Coquetéis" },
-  { "id": 4, "nome": "Sem Álcool" },
-  { "id": 7, "nome": "Doces & Guloseimas" },
-  { "id": 8, "nome": "Gelados" },
-  { "id": 10, "nome": "Carnes & Grelhados" },
-  { "id": 11, "nome": "Massas & Molhos" },
-  { "id": 12, "nome": "Comida Internacional" },
-  { "id": 13, "nome": "Rápidas & Fáceis" },
-  { "id": 15, "nome": "Vegetarianas" },
-  { "id": 16, "nome": "Veganas" },
-  { "id": 17, "nome": "Low Carb" },
-  { "id": 19, "nome": "Cremes" },
-  { "id": 20, "nome": "Caldos" },
-  { "id": 21, "nome": "Sopas" },
-  { "id": 22, "nome": "Natal" },
-  { "id": 24, "nome": "Festa Junina" },
-  { "id": 25, "nome": "Doces" },
-  { "id": 26, "nome": "Salgadas" }
-]
+' . $jsonSubs . '
 
 ESTRUTURA OBRIGATÓRIA:
 {
@@ -132,6 +107,16 @@ EXEMPLOS:
 
 RECEITA:
 ' . $texto;
+    }
+
+    private function carregarCategoriasDoBanco(): array
+    {
+        try {
+            $adminModel = new \App\Model\AdminCategoriaModel();
+            return $adminModel->listarParaPromptIA();
+        } catch (\Exception $e) {
+            return ['categorias' => [], 'subcategorias' => []];
+        }
     }
 
     private function callOpenRouter(string $prompt): string
