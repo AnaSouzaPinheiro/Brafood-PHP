@@ -17,8 +17,7 @@ class AdminSecaoCtl
 
     private function verificarAdmin(): void
     {
-        $headers = getallheaders();
-        $userId  = isset($headers['X-User-Id']) ? (int)$headers['X-User-Id'] : 0;
+        $userId = (int) getRequestHeader('X-User-Id');
 
         if (!$userId || !$this->model->isAdmin($userId)) {
             http_response_code(403);

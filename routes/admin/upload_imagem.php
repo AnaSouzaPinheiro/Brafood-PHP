@@ -7,37 +7,100 @@ use App\Service\UploadService;
 
 header('Content-Type: application/json; charset=UTF-8');
 
-// Verificar admin via AdminSecaoCtl
-$ctl     = new AdminSecaoCtl();
-$headers = getallheaders();
-$userId  = isset($headers['X-User-Id']) ? (int)$headers['X-User-Id'] : 0;
+// Verificar admin
+$ctl    = new AdminSecaoCtl();
+$userId = (int) getRequestHeader('X-User-Id');
 
 if (!$userId) {
     http_response_code(403);
-    echo json_encode(['mensagem' => 'Acesso negado.'], JSON_UNESCAPED_UNICODE);
+
+    echo json_encode([
+        'mensagem' => 'Acesso negado.'
+    ], JSON_UNESCAPED_UNICODE);
+
     exit;
 }
 
-// Determinar pasta de destino pelo parâmetro 'contexto'
-$contexto  = $_GET['contexto'] ?? 'geral';
-$permitidos = ['categorias', 'secoes'];
+// Contexto
+$contexto = $_GET['contexto'] ?? 'geral';
+
+$permitidos = [
+    'categorias',
+    'secoes'
+];
 
 if (!in_array($contexto, $permitidos, true)) {
+
     http_response_code(400);
-    echo json_encode(['mensagem' => 'Contexto inválido. Use: categorias ou secoes.'], JSON_UNESCAPED_UNICODE);
+
+    echo json_encode([
+        'mensagem' => 'Contexto inválido.'
+    ], JSON_UNESCAPED_UNICODE);
+
     exit;
 }
 
-$uploadDir    = __DIR__ . '/../../uploads/' . $contexto . '/';
-$relativePath = 'uploads/' . $contexto;
+// Pastas
+$uploadDir = __DIR__ . '/../../uploads/' . $contexto . '/';
 
-$service = new UploadService($uploadDir, $relativePath, 800, 82, 7);
+$relativePath = 'api/uploads/' . $contexto;
+$crop = false;
 
-$caminho = $service->processarUmaImagem($_FILES['imagem'] ?? []);
+// Configurações por contexto
+switch ($contexto) {
 
+    case 'categorias':
+
+        $maxLargura = 1920;
+        $maxAltura  = 220;
+
+        break;
+
+    case 'secoes':
+
+        $maxLargura = 1920;
+        $maxAltura  = 529;
+        $crop = true;
+
+        break;
+
+    default:
+
+        $maxLargura = 1200;
+        $maxAltura  = 1200;
+
+        break;
+}
+
+// Instância do upload
+$service = new UploadService(
+    $uploadDir,
+    $relativePath,
+    $maxLargura,
+    $maxAltura,
+    $crop,
+    82,
+    7
+);
+
+// Upload
+$caminho = $service->processarUmaImagem(
+    $_FILES['imagem'] ?? []
+);
+
+// Resposta
 if ($caminho) {
-    echo json_encode(['caminho' => $caminho], JSON_UNESCAPED_UNICODE);
+
+    echo json_encode([
+        'caminho' => $caminho
+    ], JSON_UNESCAPED_UNICODE);
+
 } else {
+
     http_response_code(422);
-    echo json_encode(['mensagem' => 'Falha no upload. Verifique se o arquivo é uma imagem válida.'], JSON_UNESCAPED_UNICODE);
+
+    echo json_encode([
+        'mensagem' => 'Falha no upload.'
+    ], JSON_UNESCAPED_UNICODE);
+
 }

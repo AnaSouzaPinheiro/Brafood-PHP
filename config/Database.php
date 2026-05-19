@@ -19,7 +19,6 @@ class Database
     private $username;
     private $password;
 
-    // 🔒 1. construtor privado (REGRA do Singleton)
     private function __construct()
     {
         $this->host     = DB_HOST;
@@ -29,7 +28,6 @@ class Database
         $this->password = DB_PASSWORD;
     }
 
-    // 🚪 2. ponto único de acesso
     public static function getInstance(): Database
     {
         if (self::$instance === null) {
@@ -39,7 +37,6 @@ class Database
         return self::$instance;
     }
 
-    // 🔌 conexão única reutilizável
     public function getConnection(): PDO
     {
         if ($this->conn !== null) {
@@ -48,12 +45,18 @@ class Database
 
         try {
             $this->conn = new PDO(
-                "mysql:host={$this->host};dbname={$this->db_name};port={$this->port}",
+                "mysql:host={$this->host};dbname={$this->db_name};port={$this->port};charset=utf8mb4",
                 $this->username,
-                $this->password
+                $this->password,
+                [
+                    // Lança PDOException em qualquer erro de query ou conexão
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    // Retorna arrays associativos por padrão
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    // Desativa emulação de prepared statements (mais seguro)
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                ]
             );
-
-            $this->conn->exec("set names utf8");
 
         } catch (PDOException $exception) {
 
@@ -62,7 +65,7 @@ class Database
             ]);
 
             http_response_code(500);
-            echo json_encode(['error' => 'Erro interno no servidor.']);
+            echo json_encode(['error' => 'Erro interno no servidor.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 

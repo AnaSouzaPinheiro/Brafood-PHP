@@ -200,7 +200,8 @@ class ReceitaModel
             'mais_novos'      => 'r.data_criacao DESC',
             'mais_antigos'   => 'r.data_criacao ASC',
             'mais_favoritos' => 'r.qtd_fav DESC',
-            'nome'           => 'r.titulo ASC'
+            'nome'           => 'r.titulo ASC',
+            'aleatorio'      => 'RAND()',
         ];
 
         $orderBy = $ordenacoes[$ordenar] ?? $ordenacoes['nome'];

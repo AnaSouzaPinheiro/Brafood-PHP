@@ -17,8 +17,7 @@ class AdminCategoriaCtl
 
     private function verificarAdmin(): void
     {
-        $headers = getallheaders();
-        $userId  = isset($headers['X-User-Id']) ? (int)$headers['X-User-Id'] : 0;
+        $userId = (int) getRequestHeader('X-User-Id');
 
         if (!$userId || !$this->model->isAdmin($userId)) {
             http_response_code(403);
@@ -109,7 +108,7 @@ class AdminCategoriaCtl
             return ['mensagem' => 'Os campos "nome" e "id_categoria" são obrigatórios.'];
         }
 
-        $id = $this->model->criarSubcategoria($data['nome'], (int)$data['id_categoria']);
+        $id = $this->model->criarSubcategoria($data['nome'], (int) $data['id_categoria']);
         http_response_code(201);
         return ['mensagem' => 'Subcategoria criada com sucesso.', 'id' => $id];
     }
@@ -123,7 +122,7 @@ class AdminCategoriaCtl
             return ['mensagem' => 'Os campos "nome" e "id_categoria" são obrigatórios.'];
         }
 
-        $ok = $this->model->atualizarSubcategoria($id, $data['nome'], (int)$data['id_categoria']);
+        $ok = $this->model->atualizarSubcategoria($id, $data['nome'], (int) $data['id_categoria']);
         return $ok
             ? ['mensagem' => 'Subcategoria atualizada com sucesso.']
             : ['mensagem' => 'Erro ao atualizar subcategoria.'];
@@ -141,8 +140,28 @@ class AdminCategoriaCtl
 
     // ── Prompt IA ────────────────────────────────────────────
 
+    /** Retorna categorias com suas subcategorias aninhadas para o prompt da IA */
     public function listarParaPromptIA(): array
     {
-        return $this->model->listarParaPromptIA();
+        $cats = $this->listarCategorias();
+        $subs = $this->listarSubcategorias(); // já retorna id_categoria
+
+        // Agrupa subcategorias por id_categoria
+        $subsPorCategoria = [];
+        foreach ($subs as $sub) {
+            $subsPorCategoria[(int) $sub['id_categoria']][] = [
+                'id' => (int) $sub['id'],
+                'nome' => $sub['nome'],
+            ];
+        }
+
+        // Aninha dentro de cada categoria
+        return array_map(function ($cat) use ($subsPorCategoria) {
+            return [
+                'id' => (int) $cat['id'],
+                'nome' => $cat['nome'],
+                'subcategorias' => $subsPorCategoria[(int) $cat['id']] ?? [],
+            ];
+        }, $cats);
     }
 }

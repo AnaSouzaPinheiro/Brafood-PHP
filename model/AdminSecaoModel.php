@@ -40,6 +40,7 @@ class AdminSecaoModel
                 id_categoria,
                 id_subcategoria,
                 modo,
+                card_exibir,
                 ordem
              FROM secoes_carrossel
              ORDER BY ordem ASC, id ASC"
@@ -51,9 +52,12 @@ class AdminSecaoModel
     public function buscarSecaoPorId(int $id): ?array
     {
         $stmt = $this->conn->prepare(
-            "SELECT id, titulo, url_fundo, cor_fundo, fundo_titulo,
-                    id_categoria, id_subcategoria, modo, ordem
-             FROM secoes_carrossel WHERE id = ?"
+            "SELECT id, titulo,
+                titulo_cor_tipo, titulo_cor_solid,
+                titulo_gradiente_1, titulo_gradiente_2,
+                url_fundo, cor_fundo, fundo_titulo,
+                id_categoria, id_subcategoria, modo, card_exibir, ordem
+         FROM secoes_carrossel WHERE id = ?"
         );
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -78,15 +82,16 @@ class AdminSecaoModel
                 id_categoria,
                 id_subcategoria,
                 modo,
+                card_exibir,
                 ordem
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->execute([
             $data['titulo'],
 
-            $data['titulo_cor_tipo']   ?? 'gradiente',
-            $data['titulo_cor_solid']  ?? null,
+            $data['titulo_cor_tipo']    ?? 'gradiente',
+            $data['titulo_cor_solid']   ?? null,
             $data['titulo_gradiente_1'] ?? '#8aabff',
             $data['titulo_gradiente_2'] ?? '#0049ff',
 
@@ -96,6 +101,7 @@ class AdminSecaoModel
             $data['id_categoria']    ?? null,
             $data['id_subcategoria'] ?? null,
             $data['modo']            ?? 'aleatorio',
+            $data['card_exibir']     ?? 'categoria',
             $data['ordem']           ?? 99,
         ]);
         return (int) $this->conn->lastInsertId();
@@ -113,12 +119,13 @@ class AdminSecaoModel
                 titulo_gradiente_1 = ?,
                 titulo_gradiente_2 = ?,
 
-                url_fundo = ?,
+                url_fundo       = ?,
                 cor_fundo       = ?,
                 fundo_titulo    = ?,
                 id_categoria    = ?,
                 id_subcategoria = ?,
                 modo            = ?,
+                card_exibir     = ?,
                 ordem           = ?
              WHERE id = ?"
         );
@@ -136,6 +143,7 @@ class AdminSecaoModel
             $data['id_categoria']    ?? null,
             $data['id_subcategoria'] ?? null,
             $data['modo']            ?? 'aleatorio',
+            $data['card_exibir']     ?? 'categoria',
             $data['ordem']           ?? 99,
 
             $id,

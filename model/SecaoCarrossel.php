@@ -115,7 +115,8 @@ class SecaoCarrossel
                     r.resumo,
                     r.imagem1,
                     r.qtd_fav,
-                    c.nome AS categoria
+                    c.nome AS categoria,
+                    s.nome AS subcategoria
                 FROM receitas r
                 LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
                 LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria

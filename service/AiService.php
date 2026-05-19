@@ -44,10 +44,12 @@ IMPORTANTE:
 - Não use ```json
 - Nunca invente categorias/subcategorias fora da lista
 - O JSON deve seguir EXATAMENTE a estrutura abaixo
+- O resumo deve ser entretivo, lúdico, criativo para chamar atenção, até 255 caracteres
 - Sempre gere arrays válidos
 - Sempre gere etapas organizadas
 - Sempre gere ingredientes agrupados
 - Dificuldade deve ser um número inteiro entre 1 e 3
+- "tempo_min" vai até 59
 - Caso não exista grupo de ingredientes, use:
   "titulo": ""
 

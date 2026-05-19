@@ -11,9 +11,9 @@ $ordenar = $_GET['ordenar'] ?? 'nome';
 
 $subcategorias = [];
 if (isset($_GET['subcategorias'])) {
-    $subcategorias = array_values(is_array($_GET['subcategorias'])
+    $subcategorias = is_array($_GET['subcategorias'])
         ? $_GET['subcategorias']
-        : explode(',', $_GET['subcategorias']));
+        : explode(',', $_GET['subcategorias']);
 }
 
 $dificuldades = [];
@@ -21,7 +21,7 @@ if (isset($_GET['dificuldades'])) {
     $raw = is_array($_GET['dificuldades'])
         ? $_GET['dificuldades']
         : explode(',', $_GET['dificuldades']);
-    $dificuldades = array_values(array_map('intval', array_filter($raw)));
+    $dificuldades = array_map('intval', array_filter($raw));
 }
 
 $tiposPorcao = [];
@@ -29,7 +29,7 @@ if (isset($_GET['tipos_porcao'])) {
     $tiposPorcao = is_array($_GET['tipos_porcao'])
         ? $_GET['tipos_porcao']
         : explode(',', $_GET['tipos_porcao']);
-    $tiposPorcao = array_values(array_filter(array_map('trim', $tiposPorcao)));
+    $tiposPorcao = array_filter(array_map('trim', $tiposPorcao));
 }
 
 // tempo_max em minutos totais (ex: 30, 60, ou null = sem limite)

@@ -17,6 +17,9 @@ namespace App\Config;
  *
  * Formato de cada linha:
  *   [2025-01-15 14:32:01] [INFO] [receitas/add] Receita criada | usuario=7 id=42
+ *
+ * IMPORTANTE: todas as operações de I/O usam @ e verificam permissões antes.
+ * O Logger NUNCA gera warnings ou exceptions — seu papel é auxiliar, não bloquear.
  */
 class Logger
 {
@@ -44,8 +47,15 @@ class Logger
 
     private static function write(string $level, string $context, string $message, array $extra): void
     {
+        // Tenta criar o diretório silenciosamente
         if (!is_dir(self::$logDir)) {
-            mkdir(self::$logDir, 0755, true);
+            @mkdir(self::$logDir, 0755, true);
+        }
+
+        // Se não existe ou não tem permissão de escrita, abandona sem gerar Warning.
+        // Isso evita que falhas de I/O corrompam a resposta HTTP.
+        if (!is_dir(self::$logDir) || !is_writable(self::$logDir)) {
+            return;
         }
 
         $timestamp = date('Y-m-d H:i:s');
@@ -56,14 +66,13 @@ class Logger
             ? self::$logDir . '/error.log'
             : self::$logDir . '/app.log';
 
-        file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+        @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
     }
 
     private static function formatExtra(array $extra): string
     {
         $parts = [];
         foreach ($extra as $key => $value) {
-            // Nunca loga senhas ou tokens
             if (in_array(strtolower($key), ['senha', 'password', 'token', 'pass'])) {
                 $value = '***';
             }
