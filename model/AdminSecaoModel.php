@@ -104,7 +104,9 @@ class AdminSecaoModel
             $data['card_exibir']     ?? 'categoria',
             $data['ordem']           ?? 99,
         ]);
-        return (int) $this->conn->lastInsertId();
+        $id = (int) $this->conn->lastInsertId();
+        $this->purgeCache();
+        return $id;
     }
 
     public function atualizarSecao(int $id, array $data): bool
@@ -129,7 +131,7 @@ class AdminSecaoModel
                 ordem           = ?
              WHERE id = ?"
         );
-        return $stmt->execute([
+        $result = $stmt->execute([
             $data['titulo'],
 
             $data['titulo_cor_tipo']    ?? 'gradiente',
@@ -148,6 +150,8 @@ class AdminSecaoModel
 
             $id,
         ]);
+        if ($result) $this->purgeCache();
+        return $result;
     }
 
     public function excluirSecao(int $id): bool
@@ -155,7 +159,9 @@ class AdminSecaoModel
         $stmt = $this->conn->prepare(
             "DELETE FROM secoes_carrossel WHERE id = ?"
         );
-        return $stmt->execute([$id]);
+        $result = $stmt->execute([$id]);
+        if ($result) $this->purgeCache();
+        return $result;
     }
 
     // ── Gestão de receitas vinculadas (modo manual) ───────────────────────────
@@ -206,5 +212,14 @@ class AdminSecaoModel
         );
         $stmt->execute(['%' . $termo . '%']);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Remove o cache de seções para forçar rebuild na próxima requisição */
+    private function purgeCache(): void
+    {
+        $file = sys_get_temp_dir() . '/brafood_secoes_cache.json';
+        if (file_exists($file)) {
+            @unlink($file);
+        }
     }
 }

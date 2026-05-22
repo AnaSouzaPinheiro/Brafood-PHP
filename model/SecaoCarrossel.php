@@ -115,6 +115,8 @@ class SecaoCarrossel
                     r.resumo,
                     r.imagem1,
                     r.qtd_fav,
+                    r.media_avaliacao,
+                    r.qtd_avaliacoes,
                     c.nome AS categoria,
                     s.nome AS subcategoria
                 FROM receitas r
@@ -157,12 +159,12 @@ class SecaoCarrossel
         return $this->getReceitasAleatorias(
             6,
             isset($secao['id_categoria'])
-            ? (int) $secao['id_categoria']
-            : null,
+                ? (int) $secao['id_categoria']
+                : null,
 
             isset($secao['id_subcategoria'])
-            ? (int) $secao['id_subcategoria']
-            : null,
+                ? (int) $secao['id_subcategoria']
+                : null,
 
             $idsIgnorar
         );

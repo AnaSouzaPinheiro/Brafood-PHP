@@ -29,6 +29,8 @@ class ReceitaModel
                 r.porcoes,
                 r.tipo_porcao,
                 r.qtd_fav,
+                r.media_avaliacao,
+                r.qtd_avaliacoes,
                 r.data_criacao,
                 r.imagem1,
                 CONCAT(u.nome, ' ', u.sobrenome) AS autor,
@@ -38,14 +40,17 @@ class ReceitaModel
             LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
             LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
             LEFT JOIN categorias c ON c.id = s.id_categoria
-            WHERE r.titulo LIKE :pesquisa
-               OR c.nome LIKE :pesquisa
+            WHERE r.titulo LIKE :pesquisaTitulo
+                OR c.nome LIKE :pesquisaCategoria
             GROUP BY r.id
             ORDER BY r.titulo ASC";
 
             $stmt = $this->conn->prepare($query);
+
             $param = "%{$pesquisa}%";
-            $stmt->bindParam(':pesquisa', $param, PDO::PARAM_STR);
+
+            $stmt->bindParam(':pesquisaTitulo', $param, PDO::PARAM_STR);
+            $stmt->bindParam(':pesquisaCategoria', $param, PDO::PARAM_STR);
         } else {
 
             $query = "SELECT 
@@ -58,6 +63,8 @@ class ReceitaModel
                 r.porcoes,
                 r.tipo_porcao,
                 r.qtd_fav,
+                r.media_avaliacao,
+                r.qtd_avaliacoes,
                 r.data_criacao,
                 r.imagem1,
                 CONCAT(u.nome, ' ', u.sobrenome) AS autor,
@@ -216,6 +223,8 @@ class ReceitaModel
                     r.porcoes,
                     r.tipo_porcao,
                     r.qtd_fav,
+                    r.media_avaliacao,
+                    r.qtd_avaliacoes,
                     r.data_criacao,
                     r.imagem1,
                     CONCAT(u.nome, ' ', u.sobrenome) AS autor,
