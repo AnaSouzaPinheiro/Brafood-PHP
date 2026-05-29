@@ -26,6 +26,7 @@ $contexto = $_GET['contexto'] ?? 'geral';
 
 $permitidos = [
     'categorias',
+    'icone', 
     'secoes'
 ];
 
@@ -56,6 +57,15 @@ switch ($contexto) {
 
         break;
 
+    case 'icone':
+
+        $maxLargura = 128;
+        $maxAltura  = 128;
+
+        $forcarPng = true;
+
+        break;
+
     case 'secoes':
 
         $maxLargura = 1920;
@@ -80,7 +90,8 @@ $service = new UploadService(
     $maxAltura,
     $crop,
     82,
-    7
+    7,
+    $forcarPng ?? false
 );
 
 // Upload

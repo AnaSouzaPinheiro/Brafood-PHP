@@ -22,6 +22,7 @@ class UploadService
 
     // Largura máxima em pixels — suficiente para qualquer tela, inclusive Retina
     private int $maxLargura;
+    private int $maxAltura;
 
     // Qualidade JPEG: 0–100 (82 = ótimo equilíbrio tamanho/qualidade)
     private int $qualidadeJpeg;
@@ -29,18 +30,28 @@ class UploadService
     // Compressão PNG: 0–9 (7 = boa compressão sem custo de CPU alto)
     private int $compressaoPng;
 
+    private bool $crop;
+
+    private bool $forcarPng;
+
     public function __construct(
         string $uploadDir,
         string $relativePath,
         int $maxLargura    = 1200,
+        int $maxAltura     = 1200,
+        bool $crop = false,
         int $qualidadeJpeg = 82,
-        int $compressaoPng = 7
+        int $compressaoPng = 7,
+        bool $forcarPng = false
     ) {
         $this->uploadDir    = rtrim($uploadDir, '/') . '/';
         $this->relativePath = rtrim($relativePath, '/');
         $this->maxLargura   = $maxLargura;
+        $this->maxAltura = $maxAltura;
+        $this->crop = $crop;
         $this->qualidadeJpeg = $qualidadeJpeg;
         $this->compressaoPng = $compressaoPng;
+        $this->forcarPng = $forcarPng;
 
         if (!file_exists($this->uploadDir)) {
             mkdir($this->uploadDir, 0777, true);
@@ -105,8 +116,15 @@ class UploadService
         $tipo = $info[2];
 
         // PNG sem transparência vira JPEG para economizar espaço
-        $deveSalvarComoJpeg = ($tipo === IMAGETYPE_JPEG)
-            || ($tipo === IMAGETYPE_PNG && !$this->temTransparencia($tmpPath));
+        if ($this->forcarPng) {
+
+            $deveSalvarComoJpeg = false;
+        } else {
+
+            $deveSalvarComoJpeg =
+                ($tipo === IMAGETYPE_JPEG)
+                || ($tipo === IMAGETYPE_PNG && !$this->temTransparencia($tmpPath));
+        }
 
         $extensao = $deveSalvarComoJpeg ? 'jpg' : 'png';
         $novoNome = uniqid('receita_') . '.' . $extensao;
@@ -129,28 +147,13 @@ class UploadService
     private function otimizar(string $caminho, int $tipoOriginal, bool $salvarComoJpeg): void
     {
         $info = @getimagesize($caminho);
+
         if (!$info) return;
 
         [$largura, $altura] = $info;
 
-        // Calcula dimensões alvo mantendo proporção
-        if ($largura > $this->maxLargura || $altura > $this->maxLargura) {
-            if ($largura >= $altura) {
-                $novaLargura = $this->maxLargura;
-                $novaAltura  = (int) round($altura * ($this->maxLargura / $largura));
-            } else {
-                $novaAltura  = $this->maxLargura;
-                $novaLargura = (int) round($largura * ($this->maxLargura / $altura));
-            }
-            $precisaRedimensionar = true;
-        } else {
-            $novaLargura = $largura;
-            $novaAltura  = $altura;
-            $precisaRedimensionar = false;
-        }
-
-        // Carrega imagem fonte
-        $src = match($tipoOriginal) {
+        // Carrega imagem original
+        $src = match ($tipoOriginal) {
             IMAGETYPE_JPEG => @imagecreatefromjpeg($caminho),
             IMAGETYPE_PNG  => @imagecreatefrompng($caminho),
             IMAGETYPE_WEBP => @imagecreatefromwebp($caminho),
@@ -159,39 +162,143 @@ class UploadService
 
         if (!$src) return;
 
-        if ($precisaRedimensionar) {
-            $dst = imagecreatetruecolor($novaLargura, $novaAltura);
+        // ─────────────────────────────────────────
+        // MODO CROP (banner/cover)
+        // ─────────────────────────────────────────
+        if ($this->crop) {
 
-            // Fundo branco para PNG convertido a JPEG (elimina transparência)
-            if ($salvarComoJpeg && $tipoOriginal === IMAGETYPE_PNG) {
-                imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));
+            $ratio = max(
+                $this->maxLargura / $largura,
+                $this->maxAltura / $altura
+            );
+
+            $tempLargura = (int) round($largura * $ratio);
+            $tempAltura  = (int) round($altura * $ratio);
+
+            $temp = imagecreatetruecolor($tempLargura, $tempAltura);
+
+            if (!$salvarComoJpeg) {
+                imagealphablending($temp, false);
+                imagesavealpha($temp, true);
             }
 
-            // Preserva alpha se ainda for PNG
+            imagecopyresampled(
+                $temp,
+                $src,
+                0,
+                0,
+                0,
+                0,
+                $tempLargura,
+                $tempAltura,
+                $largura,
+                $altura
+            );
+
+            $dst = imagecreatetruecolor(
+                $this->maxLargura,
+                $this->maxAltura
+            );
+
+            if (!$salvarComoJpeg) {
+                imagealphablending($dst, false);
+                imagesavealpha($dst, true);
+            }
+
+            $cropX = (int) round(($tempLargura - $this->maxLargura) / 2);
+            $cropY = (int) round(($tempAltura - $this->maxAltura) / 2);
+
+            imagecopy(
+                $dst,
+                $temp,
+                0,
+                0,
+                $cropX,
+                $cropY,
+                $this->maxLargura,
+                $this->maxAltura
+            );
+
+            imagedestroy($temp);
+        } else {
+
+            // ─────────────────────────────────────
+            // MODO NORMAL
+            // ─────────────────────────────────────
+
+            if (
+                $largura > $this->maxLargura ||
+                $altura > $this->maxAltura
+            ) {
+
+                $ratioLargura = $this->maxLargura / $largura;
+                $ratioAltura  = $this->maxAltura / $altura;
+
+                $ratio = min($ratioLargura, $ratioAltura);
+
+                $novaLargura = (int) round($largura * $ratio);
+                $novaAltura  = (int) round($altura * $ratio);
+            } else {
+
+                $novaLargura = $largura;
+                $novaAltura  = $altura;
+            }
+
+            $dst = imagecreatetruecolor(
+                $novaLargura,
+                $novaAltura
+            );
+
+            if ($salvarComoJpeg && $tipoOriginal === IMAGETYPE_PNG) {
+                imagefill(
+                    $dst,
+                    0,
+                    0,
+                    imagecolorallocate($dst, 255, 255, 255)
+                );
+            }
+
             if (!$salvarComoJpeg) {
                 imagealphablending($dst, false);
                 imagesavealpha($dst, true);
             }
 
             imagecopyresampled(
-                $dst, $src,
-                0, 0, 0, 0,
-                $novaLargura, $novaAltura,
-                $largura, $altura
+                $dst,
+                $src,
+                0,
+                0,
+                0,
+                0,
+                $novaLargura,
+                $novaAltura,
+                $largura,
+                $altura
             );
-        } else {
-            $dst = $src; // sem cópia — só recomprime
         }
 
-        // Salva com compressão
+        // ─────────────────────────────────────────
+        // SALVAR
+        // ─────────────────────────────────────────
+
         if ($salvarComoJpeg) {
-            imagejpeg($dst, $caminho, $this->qualidadeJpeg);
+
+            imagejpeg(
+                $dst,
+                $caminho,
+                $this->qualidadeJpeg
+            );
         } else {
-            imagepng($dst, $caminho, $this->compressaoPng);
+
+            imagepng(
+                $dst,
+                $caminho,
+                $this->compressaoPng
+            );
         }
 
         imagedestroy($src);
-        if ($dst !== $src) imagedestroy($dst);
+        imagedestroy($dst);
     }
 
     /**

@@ -138,6 +138,13 @@ class ReceitaCtl
             ]);
         }
 
-        return ['success' => true, 'mensagem' => 'Receita excluída com sucesso.'];
+        http_response_code(200);
+
+        echo json_encode([
+            'success' => true,
+            'mensagem' => 'Receita excluída com sucesso.'
+        ], JSON_UNESCAPED_UNICODE);
+
+        exit;
     }
 }

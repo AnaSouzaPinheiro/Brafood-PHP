@@ -13,15 +13,24 @@ $idReceita = isset($_GET['id_receita']) ? (int) $_GET['id_receita'] : ((int) ($b
 
 try {
     switch ($method) {
-        // GET ?id_usuario=X&id_receita=Y → nota do usuário + média da receita
+
+        // GET ?id_receita=Y → média pública (sempre)
+        // GET ?id_usuario=X&id_receita=Y → nota do usuário + média
         case 'GET':
-            if (!$idUsuario || !$idReceita) {
+            if (!$idReceita) {
                 http_response_code(400);
-                echo json_encode(['mensagem' => 'id_usuario e id_receita são obrigatórios.'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['mensagem' => 'id_receita é obrigatório.'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
-            $nota  = $model->buscarNota($idUsuario, $idReceita);
+
             $media = $model->buscarMedia($idReceita);
+
+            // Só busca nota individual se houver usuário logado
+            $nota = null;
+            if ($idUsuario > 0) {
+                $nota = $model->buscarNota($idUsuario, $idReceita);
+            }
+
             echo json_encode([
                 'nota'  => $nota,
                 'media' => $media['media'],

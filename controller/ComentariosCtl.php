@@ -73,6 +73,7 @@ class ComentariosCtl
                 'id_usuario'        => (int) $data['id_usuario'],
                 'texto'             => $data['texto'],
                 'id_comentario_pai' => isset($data['id_comentario_pai']) ? (int) $data['id_comentario_pai'] : null,
+                'nota'              => isset($data['nota']) ? (int) $data['nota'] : null,
             ]);
 
             Logger::info('comentarios', 'Comentário postado', [
@@ -85,7 +86,6 @@ class ComentariosCtl
                 'status' => 201,
                 'body'   => ['success' => true],
             ];
-
         } catch (Exception $e) {
             Logger::error('comentarios', 'Erro ao salvar comentário', [
                 'usuario_id' => $data['id_usuario'],
