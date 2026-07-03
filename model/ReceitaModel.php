@@ -197,8 +197,29 @@ class ReceitaModel
 
         $receita["ingredientes"] = array_values($ingredientes);
         $receita["etapas"] = $etapas;
+        $receita["imagens"] = $this->getImagensGaleria($id);
 
         return $receita;
+    }
+
+    /**
+     * Retorna os caminhos relativos da galeria de imagens de uma receita
+     * (não inclui imagem1, que é a capa e continua em `receitas`).
+     *
+     * @return string[]
+     */
+    public function getImagensGaleria($idReceita): array
+    {
+        $sql = "SELECT caminho
+                FROM receita_imagens
+                WHERE id_receita = :id
+                ORDER BY ordem ASC, id ASC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':id', $idReceita, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
     public function listarComCategoria($idCategoria, $ordenar = 'nome', $subcategorias = [], $dificuldades = [], $tiposPorcao = [], $tempoMax = null)
@@ -331,10 +352,14 @@ class ReceitaModel
             $this->conn->beginTransaction();
 
             // Busca imagens antes de excluir para poder apagá-las do disco depois
-            $stmtImg = $this->conn->prepare("SELECT imagem1, imagem2, imagem3 FROM receitas WHERE id = :id");
+            $stmtImg = $this->conn->prepare("SELECT imagem1 FROM receitas WHERE id = :id");
             $stmtImg->bindParam(':id', $id, PDO::PARAM_INT);
             $stmtImg->execute();
             $imagensReceita = $stmtImg->fetch(PDO::FETCH_ASSOC);
+
+            // Galeria (linhas em receita_imagens são apagadas em cascata pela FK,
+            // mas os arquivos no disco não — por isso buscamos os caminhos aqui).
+            $imagensGaleria = $this->getImagensGaleria($id);
 
             $sql = "DELETE dp
                 FROM descricoes_preparo dp
@@ -376,11 +401,10 @@ class ReceitaModel
             // Retorna os caminhos das imagens para o controller apagar do disco
             return [
                 'deleted'  => true,
-                'imagens'  => [
-                    $imagensReceita['imagem1'] ?? null,
-                    $imagensReceita['imagem2'] ?? null,
-                    $imagensReceita['imagem3'] ?? null,
-                ],
+                'imagens'  => array_merge(
+                    [$imagensReceita['imagem1'] ?? null],
+                    $imagensGaleria
+                ),
             ];
         } catch (Exception $e) {
             $this->conn->rollBack();

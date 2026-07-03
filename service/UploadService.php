@@ -59,33 +59,6 @@ class UploadService
     }
 
     /**
-     * Processa até 3 imagens vindas de $_FILES.
-     *
-     * Para cada campo (imagem1, imagem2, imagem3):
-     * - Se veio um arquivo novo → move, otimiza e retorna o caminho relativo.
-     * - Se não veio → retorna $fallback[$campo] (caminho já existente ou null).
-     *
-     * @param  array<string, string|null> $fallback  Caminhos relativos atuais (para update).
-     * @return array<string, string|null>            ['imagem1' => caminho_relativo|null, ...]
-     */
-    public function processarImagens(array $fallback = []): array
-    {
-        $campos  = ['imagem1', 'imagem2', 'imagem3'];
-        $imagens = [];
-
-        foreach ($campos as $campo) {
-            if (!empty($_FILES[$campo]['tmp_name'])) {
-                $resultado = $this->moverEOtimizar($_FILES[$campo]);
-                $imagens[$campo] = $resultado;
-            } else {
-                $imagens[$campo] = $fallback[$campo] ?? null;
-            }
-        }
-
-        return $imagens;
-    }
-
-    /**
      * Processa uma única imagem de $_FILES (para foto de perfil, etc).
      *
      * @param  array       $file      Entrada de $_FILES (ex: $_FILES['foto'])
@@ -98,6 +71,51 @@ class UploadService
             return $this->moverEOtimizar($file);
         }
         return $fallback;
+    }
+
+    /**
+     * Processa uma quantidade dinâmica (N) de imagens vindas de um input
+     * múltiplo do tipo <input type="file" name="galeria[]" multiple>.
+     *
+     * Ao contrário de processarImagens(), não tem limite fixo de campos:
+     * cada arquivo enviado em $_FILES['galeria'] vira uma imagem da galeria.
+     *
+     * @param  array $filesGaleria  Normalmente $_FILES['galeria'] (formato de array do PHP)
+     * @return string[]             Caminhos relativos das imagens processadas com sucesso
+     */
+    public function processarGaleria(array $filesGaleria): array
+    {
+        if (empty($filesGaleria['tmp_name']) || !is_array($filesGaleria['tmp_name'])) {
+            return [];
+        }
+
+        $caminhos = [];
+        $total    = count($filesGaleria['tmp_name']);
+
+        for ($i = 0; $i < $total; $i++) {
+            if (empty($filesGaleria['tmp_name'][$i])) {
+                continue;
+            }
+
+            $arquivoUnico = [
+                'name'     => $filesGaleria['name'][$i]     ?? '',
+                'type'     => $filesGaleria['type'][$i]     ?? '',
+                'tmp_name' => $filesGaleria['tmp_name'][$i] ?? '',
+                'error'    => $filesGaleria['error'][$i]    ?? UPLOAD_ERR_NO_FILE,
+                'size'     => $filesGaleria['size'][$i]     ?? 0,
+            ];
+
+            if ($arquivoUnico['error'] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            $caminho = $this->moverEOtimizar($arquivoUnico);
+            if ($caminho !== null) {
+                $caminhos[] = $caminho;
+            }
+        }
+
+        return $caminhos;
     }
 
     // ─── Internos ─────────────────────────────────────────────────────────────

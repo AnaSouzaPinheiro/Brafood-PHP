@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use Exception;
+use App\Config\Logger;
 
 require_once __DIR__ . '/../config/config.php';
 
@@ -22,9 +23,71 @@ class AiService
     {
         $prompt = $this->buildPrompt($textoReceita);
 
-        $response = $this->callOpenRouter($prompt);
+        $ultimaException = null;
 
-        return $this->extractJson($response);
+        for ($tentativa = 1; $tentativa <= 2; $tentativa++) {
+
+            try {
+
+                Logger::info(
+                    'ai/receitas',
+                    'Iniciando geração de receita',
+                    [
+                        'tentativa' => $tentativa
+                    ]
+                );
+
+                $response = $this->callOpenRouter($prompt);
+
+                Logger::info(
+                    'ai/receitas',
+                    'Resposta recebida da IA',
+                    [
+                        'tentativa' => $tentativa,
+                        'response' => $response
+                    ]
+                );
+
+                $receita = $this->extractJson($response);
+
+                Logger::info(
+                    'ai/receitas',
+                    'Receita gerada com sucesso',
+                    [
+                        'tentativa' => $tentativa,
+                        'titulo' => $receita['titulo'] ?? null
+                    ]
+                );
+
+                return $receita;
+            } catch (Exception $e) {
+
+                $ultimaException = $e;
+
+                Logger::warn(
+                    'ai/receitas',
+                    'Falha ao processar resposta da IA',
+                    [
+                        'tentativa' => $tentativa,
+                        'erro' => $e->getMessage()
+                    ]
+                );
+
+                if (str_contains($e->getMessage(), 'limite de tokens')) {
+                    break;
+                }
+            }
+        }
+
+        Logger::error(
+            'ai/receitas',
+            'Todas as tentativas de geração falharam',
+            [
+                'erro' => $ultimaException?->getMessage()
+            ]
+        );
+
+        throw $ultimaException;
     }
 
 
@@ -49,7 +112,7 @@ IMPORTANTE:
 - Sempre gere etapas organizadas
 - Sempre gere ingredientes agrupados
 - Dificuldade deve ser um número inteiro entre 1 e 3
-- "tempo_min" vai até 59
+- "tempo_min" NUNCA DEVE SER MAIOR QUE 59
 - Caso não exista grupo de ingredientes, use:
   "titulo": ""
 
@@ -132,7 +195,7 @@ RECEITA:
                 ]
             ],
             "temperature" => 0.2,
-            "max_tokens" => 1200
+            "max_tokens" => 2500
         ];
 
         $ch = curl_init($this->apiUrl);
@@ -143,7 +206,7 @@ RECEITA:
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "Authorization: Bearer " . $this->apiKey,
             "Content-Type: application/json",
-            "HTTP-Referer: http://localhost",
+            "HTTP-Referer: https://brafood.page.gd",
             "X-Title: BraFood"
         ]);
 
@@ -154,10 +217,41 @@ RECEITA:
         $result = curl_exec($ch);
 
         if (curl_errno($ch)) {
-            throw new Exception(curl_error($ch));
+
+            $erro = curl_error($ch);
+
+            Logger::error(
+                'ai/receitas',
+                'Erro CURL na OpenRouter',
+                [
+                    'erro' => $erro
+                ]
+            );
+
+            curl_close($ch);
+
+            throw new Exception($erro);
         }
 
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
         curl_close($ch);
+
+        if ($httpCode >= 400) {
+
+            Logger::error(
+                'ai/receitas',
+                'OpenRouter retornou erro HTTP',
+                [
+                    'http_code' => $httpCode,
+                    'response' => $result
+                ]
+            );
+
+            throw new Exception(
+                'Erro na OpenRouter. HTTP ' . $httpCode
+            );
+        }
 
         return $result;
     }
@@ -166,42 +260,93 @@ RECEITA:
     {
         $data = json_decode($response, true);
 
-        if (isset($data["error"])) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
+
+            Logger::error(
+                'ai/receitas',
+                'Falha ao decodificar resposta da OpenRouter',
+                [
+                    'erro_json' => json_last_error_msg(),
+                    'response' => $response
+                ]
+            );
+
+            throw new Exception('Resposta inválida da OpenRouter');
+        }
+
+        if (isset($data['error'])) {
+
+            Logger::error(
+                'ai/receitas',
+                'OpenRouter retornou erro',
+                [
+                    'error' => $data['error']
+                ]
+            );
+
             throw new Exception(
-                $data["error"]["message"] ?? "Erro desconhecido"
+                $data['error']['message']
+                    ?? 'Erro desconhecido da OpenRouter'
             );
         }
 
-        $content =
-            $data["choices"][0]["message"]["content"] ?? null;
+        // NOVO
+        $finishReason = $data['choices'][0]['finish_reason'] ?? null;
+
+        Logger::info(
+            'ai/receitas',
+            'Resposta da IA finalizada',
+            [
+                'finish_reason' => $finishReason,
+                'completion_tokens' => $data['usage']['completion_tokens'] ?? null
+            ]
+        );
+
+        if ($finishReason === 'length') {
+            throw new Exception('Resposta da IA foi cortada por limite de tokens.');
+        }
+
+        $content = $data['choices'][0]['message']['content'] ?? null;
 
         if (!$content) {
+
+            Logger::error(
+                'ai/receitas',
+                'Resposta da IA sem conteúdo',
+                [
+                    'response' => $response
+                ]
+            );
+
             throw new Exception(
-                "Resposta inválida da IA: " . $response
+                'Resposta da IA sem conteúdo'
             );
         }
 
         $content = trim($content);
 
         $content = str_replace(
-            ["```json", "```"],
-            "",
+            ['```json', '```'],
+            '',
             $content
         );
 
-        preg_match('/\{.*\}/s', $content, $matches);
+        $json = json_decode($content, true);
 
-        if (!isset($matches[0])) {
-            throw new Exception(
-                "Nenhum JSON encontrado: " . $content
+        if (json_last_error() !== JSON_ERROR_NONE) {
+
+            Logger::error(
+                'ai/receitas',
+                'IA retornou JSON inválido',
+                [
+                    'erro_json' => json_last_error_msg(),
+                    'content' => $content
+                ]
             );
-        }
 
-        $json = json_decode($matches[0], true);
-
-        if (!$json) {
             throw new Exception(
-                "Falha ao converter JSON: " . $matches[0]
+                'JSON inválido retornado pela IA: '
+                    . json_last_error_msg()
             );
         }
 

@@ -20,35 +20,39 @@ $dados = json_decode($_POST['dados'], true);
 $receitaModel = new ReceitaModel();
 $receitaAtual = $receitaModel->buscarPorId((int) $dados['id']);
 
-$imagensAntigas = [
-    $receitaAtual['imagem1'] ?? null,
-    $receitaAtual['imagem2'] ?? null,
-    $receitaAtual['imagem3'] ?? null,
-];
+$imagensAntigas = array_merge(
+    [$receitaAtual['imagem1'] ?? null],
+    $receitaAtual['imagens'] ?? []
+);
 
-// ── Upload das imagens novas (ou mantém as existentes como fallback) ─────────
+// ── Upload das imagens novas ─────────────────────────────────────────────────
 $uploadService = new UploadService(
     __DIR__ . '/../../uploads/receitas/',
     'uploads/receitas'
 );
 
-// Fallback: mantém as imagens existentes caso não venha arquivo novo
-$fallback = [
-    'imagem1' => $dados['imagem1'] ?? null,
-    'imagem2' => $dados['imagem2'] ?? null,
-    'imagem3' => $dados['imagem3'] ?? null,
-];
+// Capa: se não veio arquivo novo, mantém a capa atual do banco
+$imagem1 = $uploadService->processarUmaImagem(
+    $_FILES['imagem1'] ?? [],
+    $receitaAtual['imagem1'] ?? null
+);
 
-$imagens = $uploadService->processarImagens($fallback);
+// Galeria: o front manda em `dados.galeriaAtual` os caminhos das imagens
+// existentes que o usuário optou por manter (as que ele removeu na tela
+// simplesmente não aparecem aqui). Os arquivos novos vêm em $_FILES['galeria'][].
+$galeriaMantida = $dados['galeriaAtual'] ?? [];
+$galeriaNova    = $uploadService->processarGaleria($_FILES['galeria'] ?? []);
+$galeriaFinal   = array_merge($galeriaMantida, $galeriaNova);
 
 try {
-    $result = $ctl->editarReceita($dados, $imagens);
+    $result = $ctl->editarReceita($dados, $imagem1, $galeriaFinal);
 
-    // ── Apaga do disco apenas as imagens que foram substituídas ──────────────
+    // ── Apaga do disco apenas as imagens que foram substituídas/removidas ────
     if ($result['success'] ?? false) {
+        $imagensNovas = array_merge([$imagem1], $galeriaFinal);
         ImageCleanupService::apagarImagensAntigas(
             $imagensAntigas,
-            array_values($imagens),
+            $imagensNovas,
             __DIR__ . '/../../'
         );
     }

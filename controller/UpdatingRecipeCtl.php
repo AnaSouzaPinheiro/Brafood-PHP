@@ -31,7 +31,7 @@ class UpdatingRecipeCtl
         $this->diffService  = new ReceitaDiffService($updating, $adding);
     }
 
-    public function editarReceita(array $dados, array $imagens): array
+    public function editarReceita(array $dados, ?string $imagem1, array $galeriaFinal = []): array
     {
         $id        = (int) $dados['id'];
         $idUsuario = $dados['id_usuario'] ?? null;
@@ -48,26 +48,35 @@ class UpdatingRecipeCtl
                 $dados['tempo_min'],
                 $dados['porcoes'],
                 $dados['tipo_porcao'],
-                $imagens['imagem1'] ?? null,
-                $imagens['imagem2'] ?? null,
-                $imagens['imagem3'] ?? null
+                $imagem1,
+                !isset($dados['eh_propria']) || $dados['eh_propria'],
+                $dados['fonte_autor'] ?? null,
+                $dados['fonte_url'] ?? null,
+                $dados['video_url'] ?? null
             );
 
-            // 2. Subcategoria
+            // 2. Galeria de imagens
+            $this->diffService->diffImagens(
+                $id,
+                $this->receitaModel->getImagensGaleria($id),
+                $galeriaFinal
+            );
+
+            // 3. Subcategoria
             $this->diffService->diffSubcategoria(
                 $id,
                 $this->receitaModel->getSubcategoria($id),
                 $dados['idSubcategoria'] ?? null
             );
 
-            // 3. Ingredientes
+            // 4. Ingredientes
             $this->diffService->diffIngredientes(
                 $id,
                 $this->receitaModel->getIngredientes($id),
                 $dados['ingredientes'] ?? []
             );
 
-            // 4. Etapas
+            // 5. Etapas
             $this->diffService->diffEtapas(
                 $id,
                 $this->receitaModel->getEtapas($id),

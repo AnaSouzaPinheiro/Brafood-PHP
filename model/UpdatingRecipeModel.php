@@ -15,17 +15,29 @@ class UpdatingRecipeModel
         $this->conn = Database::getInstance()->getConnection();
     }
 
-    public function updateReceita($id, $idUser, $titulo, $resumo, $dificuldade, $tempo_hora, $tempo_min, $porcoes, $tipo_porcao, $imagem1, $imagem2, $imagem3)
+    public function updateReceita($id, $idUser, $titulo, $resumo, $dificuldade, $tempo_hora, $tempo_min, $porcoes, $tipo_porcao, $imagem1, $ehPropria = true, $fonteAutor = null, $fonteUrl = null, $videoUrl = null)
     {
         if ($tempo_hora === null && $tempo_min === null) {
             throw new Exception("tempo_hora e tempo_min não podem ser null ao mesmo tempo.");
         }
 
+        $ehPropria = $ehPropria ? 1 : 0;
+        if (!$ehPropria && empty($fonteAutor)) {
+            throw new Exception("Informe o autor original da receita.");
+        }
+
+        // Zera os campos de crédito quando a receita passa a ser marcada como própria
+        $fonteAutor = $ehPropria ? null : trim((string) $fonteAutor);
+        $fonteUrl   = $ehPropria ? null : $fonteUrl;
+        $videoUrl   = $ehPropria ? null : $videoUrl;
+
         $sql = "UPDATE receitas 
                 SET titulo = :titulo, resumo = :resumo, dificuldade = :dificuldade, 
                     tempo_hora = :tempo_hora, tempo_min = :tempo_min, 
                     porcoes = :porcoes, tipo_porcao = :tipo_porcao, 
-                    imagem1 = :imagem1, imagem2 = :imagem2, imagem3 = :imagem3
+                    imagem1 = :imagem1,
+                    eh_propria = :eh_propria, fonte_autor = :fonte_autor,
+                    fonte_url = :fonte_url, video_url = :video_url
                 WHERE id_usuario = :idUser AND id = :id";
 
         $stmt = $this->conn->prepare($sql);
@@ -41,11 +53,46 @@ class UpdatingRecipeModel
         $stmt->bindParam(':porcoes', $porcoes, PDO::PARAM_INT);
         $stmt->bindParam(':tipo_porcao', $tipo_porcao);
         $stmt->bindParam(':imagem1', $imagem1);
-        $stmt->bindParam(':imagem2', $imagem2);
-        $stmt->bindParam(':imagem3', $imagem3);
         $stmt->bindParam(':idUser', $idUser, PDO::PARAM_INT);
+        $stmt->bindParam(':eh_propria', $ehPropria, PDO::PARAM_INT);
+        $stmt->bindValue(':fonte_autor', $fonteAutor, $fonteAutor === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':fonte_url', $fonteUrl, $fonteUrl === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':video_url', $videoUrl, $videoUrl === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
 
         $stmt->execute();
+    }
+
+    // -------------------------------------------------------------------------
+    // Galeria de imagens
+    // -------------------------------------------------------------------------
+
+    public function removerImagemGaleria(int $idReceita, string $caminho): void
+    {
+        $sql = "DELETE FROM receita_imagens WHERE id_receita = :idReceita AND caminho = :caminho";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':idReceita', $idReceita, PDO::PARAM_INT);
+        $stmt->bindParam(':caminho', $caminho);
+        $stmt->execute();
+    }
+
+    /**
+     * Reordena a galeria de acordo com a ordem final enviada pelo front
+     * (útil quando o usuário arrasta/reordena as imagens existentes).
+     *
+     * @param string[] $caminhosNaOrdemFinal
+     */
+    public function reordenarGaleria(int $idReceita, array $caminhosNaOrdemFinal): void
+    {
+        $sql = "UPDATE receita_imagens SET ordem = :ordem WHERE id_receita = :idReceita AND caminho = :caminho";
+        $stmt = $this->conn->prepare($sql);
+
+        foreach (array_values($caminhosNaOrdemFinal) as $ordem => $caminho) {
+            $stmt->execute([
+                ':ordem'     => $ordem,
+                ':idReceita' => $idReceita,
+                ':caminho'   => $caminho,
+            ]);
+        }
     }
 
 

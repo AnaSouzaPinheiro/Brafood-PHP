@@ -112,6 +112,39 @@ class ReceitaDiffService
     }
 
     // -------------------------------------------------------------------------
+    // Galeria de imagens
+    // -------------------------------------------------------------------------
+
+    /**
+     * @param int      $idReceita
+     * @param string[] $atuais  Caminhos hoje em receita_imagens (ReceitaModel::getImagensGaleria)
+     * @param string[] $novas   Caminhos finais desejados, na ordem final (mantidas + recém-enviadas)
+     */
+    public function diffImagens(int $idReceita, array $atuais, array $novas): void
+    {
+        if ($atuais === $novas) {
+            return;
+        }
+
+        // Remove o que saiu da galeria
+        foreach ($atuais as $caminhoAntigo) {
+            if (!in_array($caminhoAntigo, $novas, true)) {
+                $this->updating->removerImagemGaleria($idReceita, $caminhoAntigo);
+            }
+        }
+
+        // Adiciona o que é novo (uploads recém-processados)
+        foreach ($novas as $caminhoNovo) {
+            if (!in_array($caminhoNovo, $atuais, true)) {
+                $this->adding->adicionarImagemGaleria($idReceita, $caminhoNovo);
+            }
+        }
+
+        // Persiste a ordem final (cobre também reordenação de imagens mantidas)
+        $this->updating->reordenarGaleria($idReceita, $novas);
+    }
+
+    // -------------------------------------------------------------------------
     // Etapas
     // -------------------------------------------------------------------------
 

@@ -20,10 +20,11 @@ $uploadService = new UploadService(
 );
 
 // Sem fallback: é um cadastro novo, não há imagens anteriores
-$imagens = $uploadService->processarImagens();
+$imagem1 = $uploadService->processarUmaImagem($_FILES['imagem1'] ?? []);
+$galeria = $uploadService->processarGaleria($_FILES['galeria'] ?? []);
 
 try {
-    $result = $ctl->adicionarReceita($dados, $imagens);
+    $result = $ctl->adicionarReceita($dados, $imagem1, $galeria);
     echo json_encode($result);
 } catch (Exception $e) {
     echo json_encode([

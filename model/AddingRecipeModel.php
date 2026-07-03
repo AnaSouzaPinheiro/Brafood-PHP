@@ -15,14 +15,15 @@ class AddingRecipeModel
         $this->conn = Database::getInstance()->getConnection();
     }
 
-    public function criarReceita($dados, $imagens)
+    /**
+     * @param array       $dados
+     * @param string|null $imagem1  Caminho relativo da capa
+     * @param string[]    $galeria  Caminhos relativos das imagens adicionais (opcional)
+     */
+    public function criarReceita($dados, $imagem1, array $galeria = [])
     {
-        // validações básicas
-        if (
-            empty($imagens['imagem1']) &&
-            empty($imagens['imagem2']) &&
-            empty($imagens['imagem3'])
-        ) {
+        // validações básicas — precisa de ao menos uma imagem, seja capa ou galeria
+        if (empty($imagem1) && empty($galeria)) {
             throw new Exception("É necessário anexar ao menos uma imagem.");
         }
 
@@ -39,9 +40,15 @@ class AddingRecipeModel
             }
         }
 
+        // Se a receita não é própria, exige ao menos o crédito do autor original
+        $ehPropria = !isset($dados['eh_propria']) || $dados['eh_propria'] ? 1 : 0;
+        if (!$ehPropria && empty($dados['fonte_autor'])) {
+            throw new Exception("Informe o autor original da receita.");
+        }
+
         $sql = "INSERT INTO receitas 
-            (id_usuario, titulo, resumo, dificuldade, tempo_hora, tempo_min, porcoes, tipo_porcao, imagem1, imagem2, imagem3, qtd_fav, data_criacao)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            (id_usuario, titulo, resumo, dificuldade, tempo_hora, tempo_min, porcoes, tipo_porcao, imagem1, qtd_fav, data_criacao, eh_propria, fonte_autor, fonte_url, video_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $this->conn->prepare($sql);
 
@@ -54,15 +61,43 @@ class AddingRecipeModel
             $dados['tempo_min'] ?? '',
             $dados['porcoes'] ?? 1,
             $dados['tipo_porcao'] ?? '',
-            $imagens['imagem1'] ?? null,
-            $imagens['imagem2'] ?? null,
-            $imagens['imagem3'] ?? null,
+            $imagem1,
             $dados['qtd_fav'] ?? 0,
-            $dados['data_criacao'] ?? date('Y-m-d H:i:s')
+            $dados['data_criacao'] ?? date('Y-m-d H:i:s'),
+            $ehPropria,
+            $ehPropria ? null : trim($dados['fonte_autor']),
+            $ehPropria ? null : ($dados['fonte_url'] ?? null),
+            $ehPropria ? null : ($dados['video_url'] ?? null),
         ]);
 
+        $idReceita = (int) $this->conn->lastInsertId();
+
+        if (!empty($galeria)) {
+            $this->adicionarImagensGaleria($idReceita, $galeria);
+        }
+
         // retorna o id da nova receita
-        return $this->conn->lastInsertId();
+        return $idReceita;
+    }
+
+    /**
+     * Insere N imagens da galeria de uma vez, respeitando a ordem enviada.
+     *
+     * @param int      $idReceita
+     * @param string[] $caminhos  Caminhos relativos, na ordem desejada
+     */
+    public function adicionarImagensGaleria(int $idReceita, array $caminhos): void
+    {
+        foreach (array_values($caminhos) as $ordem => $caminho) {
+            $this->adicionarImagemGaleria($idReceita, $caminho, $ordem);
+        }
+    }
+
+    public function adicionarImagemGaleria(int $idReceita, string $caminho, int $ordem = 0): void
+    {
+        $sql = "INSERT INTO receita_imagens (id_receita, caminho, ordem) VALUES (?, ?, ?)";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$idReceita, $caminho, $ordem]);
     }
 
     public function vincularSubcategoria($idReceita, $idSubcategoria)

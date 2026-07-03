@@ -20,7 +20,7 @@ class AddingRecipeCtl
         $this->addRecipe = new AddingRecipeModel();
     }
 
-    public function adicionarReceita(array $dados, array $imagens): array
+    public function adicionarReceita(array $dados, ?string $imagem1, array $galeria = []): array
     {
         if (empty($dados['titulo']) || empty($dados['categoria'])) {
             return ['success' => false, 'message' => 'Título e categoria são obrigatórios.'];
@@ -29,7 +29,7 @@ class AddingRecipeCtl
         $idUsuario = $dados['autor'] ?? null;
 
         try {
-            $idReceita = $this->addRecipe->criarReceita($dados, $imagens);
+            $idReceita = $this->addRecipe->criarReceita($dados, $imagem1, $galeria);
 
             // Subcategoria
             $nomeSubcategoria = $dados['subcategoria'] ?? '';
