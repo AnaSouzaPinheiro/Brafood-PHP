@@ -47,9 +47,16 @@ class LoginModel
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($senha, $user['senha'])) {
+            $token = bin2hex(random_bytes(32));
+
+            $stmtToken = $this->conn->prepare("UPDATE usuarios SET token = :token WHERE id = :id");
+            $stmtToken->bindParam(':token', $token);
+            $stmtToken->bindParam(':id', $user['id']);
+            $stmtToken->execute();
+
             return [
                 'success' => true,
-                'id'      => $user['id'],
+                'token'   => $token,
                 'usuario' => [
                     'id'          => $user['id'],
                     'nome'        => $user['nome'],
@@ -64,6 +71,15 @@ class LoginModel
             ];
         }
         return ['success' => false, 'mensagem' => 'Email ou senha incorretos'];
+    }
+
+    public function logout($token)
+    {
+        $stmt = $this->conn->prepare("UPDATE usuarios SET token = NULL WHERE token = :token");
+        $stmt->bindParam(':token', $token);
+        $stmt->execute();
+
+        return ['success' => true];
     }
 
     private function validarSenha($senha)

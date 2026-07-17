@@ -2,8 +2,11 @@
 
 require_once __DIR__ . '/../../config/core.php';
 
+use App\Config\Auth;
 use App\Controller\AddingRecipeCtl;
 use App\Service\UploadService;
+
+$usuarioLogado = Auth::requireAuth();
 
 $ctl = new AddingRecipeCtl();
 
@@ -13,6 +16,10 @@ if (!isset($_POST['dados'])) {
 }
 
 $dados = json_decode($_POST['dados'], true);
+
+// O autor é sempre o usuário autenticado — nunca o que vier no payload,
+// senão dá pra criar receita em nome de qualquer um.
+$dados['autor'] = $usuarioLogado['id'];
 
 $uploadService = new UploadService(
     __DIR__ . '/../../uploads/receitas/',

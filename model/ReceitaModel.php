@@ -346,6 +346,21 @@ class ReceitaModel
         return array_values($receitas);
     }
 
+    /**
+     * Retorna só o id_usuario dono da receita (ou null se não existir).
+     * Usado pelas rotas de excluir/editar pra checar propriedade antes
+     * de mexer no banco, sem precisar do join pesado do buscarPorId.
+     */
+    public function donoDaReceita($id): ?int
+    {
+        $stmt = $this->conn->prepare("SELECT id_usuario FROM receitas WHERE id = :id");
+        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ? (int) $row['id_usuario'] : null;
+    }
+
     public function excluirReceita($id)
     {
         try {

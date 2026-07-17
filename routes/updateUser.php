@@ -2,9 +2,12 @@
 
 require_once __DIR__ . '/../config/core.php';
 
+use App\Config\Auth;
 use App\Controller\UserCtl;
 use App\Service\ImageCleanupService;
 use App\Config\Logger;
+
+$usuarioLogado = Auth::requireAuth();
 
 $ctl = new UserCtl();
 
@@ -15,6 +18,11 @@ if (!isset($_POST['dados'])) {
 }
 
 $dados = json_decode($_POST['dados'], true);
+
+// Só dá pra editar o próprio perfil (ou um admin editando qualquer um).
+// O id nunca é confiável vindo do payload sozinho — sempre confere contra
+// quem está autenticado.
+Auth::requireOwnership($usuarioLogado, (int) ($dados['id'] ?? 0));
 $uploadDir = dirname(__DIR__) . '/uploads/users/';
 
 if (!is_dir($uploadDir)) {

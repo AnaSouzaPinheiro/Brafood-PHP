@@ -36,9 +36,10 @@ if (!($response['success'] ?? false)) {
     exit;
 }
 
-// Retorna dados completos do usuário (incluindo is_admin)
+// Retorna dados completos do usuário (incluindo is_admin) + token de sessão
 echo json_encode([
     'success' => true,
     'mensagem' => 'Login realizado com sucesso.',
     'user'    => $response['usuario'],
+    'token'   => $response['token'],
 ], JSON_UNESCAPED_UNICODE);
