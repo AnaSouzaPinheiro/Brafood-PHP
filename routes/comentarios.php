@@ -18,6 +18,18 @@ switch ($_SERVER['REQUEST_METHOD']) {
         $result = $controller->store($data);
         break;
 
+    case 'DELETE':
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : null;
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID do comentário não informado'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $result = $controller->destroy($id);
+        break;
+
     default:
         http_response_code(405);
         exit;

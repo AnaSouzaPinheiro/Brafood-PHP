@@ -16,18 +16,29 @@ class ComentarioModel
 
     public function buscarComentarioPorReceita(int $idReceita): array
     {
+        // A nota exibida junto do comentário vem sempre "ao vivo" da tabela
+        // avaliacoes (LEFT JOIN por usuário+receita), nunca da coluna
+        // comentarios.nota — assim ela nunca fica dessincronizada se o
+        // usuário alterar a nota depois (ex: pelas estrelas, sem reescrever
+        // o comentário). Só comentários raiz mostram nota; respostas não
+        // carregam avaliação própria.
         $sql = "SELECT
                     c.id,
                     c.id_receita,
                     c.id_usuario,
                     c.id_comentario_pai,
                     c.texto,
-                    c.nota,
+                    CASE
+                        WHEN c.id_comentario_pai IS NULL THEN av.nota
+                        ELSE NULL
+                    END AS nota,
                     c.data_criacao,
                     u.nome AS nome_usuario,
                     u.foto_perfil
                 FROM comentarios c
                 JOIN usuarios u ON u.id = c.id_usuario
+                LEFT JOIN avaliacoes av
+                    ON av.id_usuario = c.id_usuario AND av.id_receita = c.id_receita
                 WHERE c.id_receita = ?
                 ORDER BY c.data_criacao ASC";
 
@@ -37,8 +48,37 @@ class ComentarioModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Verifica se o usuário já tem um comentário raiz (não-resposta) nessa receita */
+    public function possuiComentarioRaiz(int $idUsuario, int $idReceita): bool
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT 1 FROM comentarios
+             WHERE id_usuario = ? AND id_receita = ? AND id_comentario_pai IS NULL
+             LIMIT 1"
+        );
+        $stmt->execute([$idUsuario, $idReceita]);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
     public function criar(array $data): bool
     {
+        $idComentarioPai = $data['id_comentario_pai'] ?? null;
+
+        // Regra de negócio: um usuário pode ter só um comentário raiz por
+        // receita (mas pode responder livremente). Isso evita ambiguidade
+        // de qual comentário "carrega" a nota do usuário na listagem.
+        if ($idComentarioPai === null) {
+            $jaComentou = $this->possuiComentarioRaiz(
+                (int) $data['id_usuario'],
+                (int) $data['id_receita'],
+            );
+
+            if ($jaComentou) {
+                throw new \RuntimeException('COMENTARIO_RAIZ_DUPLICADO');
+            }
+        }
+
         $nota = isset($data['nota']) && $data['nota'] >= 1 && $data['nota'] <= 5
             ? (int) $data['nota']
             : null;
@@ -65,6 +105,56 @@ class ComentarioModel
         return $ok;
     }
 
+    public function buscarPorId(int $id): ?array
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT id, id_usuario FROM comentarios WHERE id = ?"
+        );
+        $stmt->execute([$id]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Exclui um comentário e todas as suas respostas, em qualquer
+     * profundidade (resposta de resposta etc.).
+     */
+    public function excluir(int $id): bool
+    {
+        $ids = $this->coletarIdsComRespostas($id);
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->conn->prepare(
+            "DELETE FROM comentarios WHERE id IN ($placeholders)"
+        );
+
+        return $stmt->execute($ids);
+    }
+
+    /**
+     * Coleta recursivamente o id do comentário + ids de todas as respostas
+     * (e respostas de respostas), pra exclusão em cascata manual — não
+     * depende de ON DELETE CASCADE existir na FK.
+     */
+    private function coletarIdsComRespostas(int $id): array
+    {
+        $ids = [$id];
+
+        $stmt = $this->conn->prepare(
+            "SELECT id FROM comentarios WHERE id_comentario_pai = ?"
+        );
+        $stmt->execute([$id]);
+        $filhos = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($filhos as $filhoId) {
+            $ids = array_merge($ids, $this->coletarIdsComRespostas((int) $filhoId));
+        }
+
+        return $ids;
+    }
+
     private function sincronizarNota(int $idUsuario, int $idReceita, int $nota): void
     {
         // Upsert na tabela de avaliações para manter consistência
@@ -89,7 +179,6 @@ class ComentarioModel
                  r.qtd_avaliacoes  = calc.novo_total
              WHERE r.id = ?"
         );
-        var_dump($stmt->execute([$idReceita, $idReceita]));
         $stmt->execute([$idReceita, $idReceita]);
     }
 }

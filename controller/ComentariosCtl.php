@@ -13,6 +13,7 @@ namespace App\Controller;
 
 use App\Model\ComentarioModel;
 use App\Config\Logger;
+use App\Config\Auth;
 use Exception;
 
 class ComentariosCtl
@@ -86,6 +87,23 @@ class ComentariosCtl
                 'status' => 201,
                 'body'   => ['success' => true],
             ];
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'COMENTARIO_RAIZ_DUPLICADO') {
+                Logger::warn('comentarios', 'Tentativa de segundo comentário raiz', [
+                    'usuario_id' => $data['id_usuario'],
+                    'receita_id' => $data['id_receita'],
+                ]);
+
+                return [
+                    'status' => 409,
+                    'body'   => [
+                        'error' => 'Você já comentou nesta receita. Exclua seu comentário atual para escrever outro.',
+                        'code'  => 'COMENTARIO_RAIZ_DUPLICADO',
+                    ],
+                ];
+            }
+
+            throw $e;
         } catch (Exception $e) {
             Logger::error('comentarios', 'Erro ao salvar comentário', [
                 'usuario_id' => $data['id_usuario'],
@@ -96,6 +114,55 @@ class ComentariosCtl
             return [
                 'status' => 500,
                 'body'   => ['error' => 'Erro ao salvar comentário.'],
+            ];
+        }
+    }
+
+    /**
+     * Exclui um comentário (e suas respostas em cascata).
+     * Só o dono do comentário ou um admin pode excluir — Auth::requireAuth()
+     * e Auth::requireOwnership() encerram a execução com 401/403 caso
+     * contrário, então se chegarmos até aqui é porque está autorizado.
+     *
+     * @param int $id  ID extraído da query string pela rota.
+     * @return array{status: int, body: array}
+     */
+    public function destroy(int $id): array
+    {
+        $user = Auth::requireAuth();
+
+        $comentario = $this->model->buscarPorId($id);
+
+        if (!$comentario) {
+            return [
+                'status' => 404,
+                'body'   => ['error' => 'Comentário não encontrado.'],
+            ];
+        }
+
+        Auth::requireOwnership($user, (int) $comentario['id_usuario']);
+
+        try {
+            $this->model->excluir($id);
+
+            Logger::info('comentarios', 'Comentário excluído', [
+                'comentario_id' => $id,
+                'usuario_id'    => $user['id'],
+            ]);
+
+            return [
+                'status' => 200,
+                'body'   => ['success' => true],
+            ];
+        } catch (Exception $e) {
+            Logger::error('comentarios', 'Erro ao excluir comentário', [
+                'comentario_id' => $id,
+                'error'         => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => 500,
+                'body'   => ['error' => 'Erro ao excluir comentário.'],
             ];
         }
     }
