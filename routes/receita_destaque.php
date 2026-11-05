@@ -2,11 +2,22 @@
 
 require_once __DIR__ . '/../config/core.php';
 
+use App\Config\Auth;
 use App\Model\DestaqueModel;
 
 $model  = new DestaqueModel();
 $method = $_SERVER['REQUEST_METHOD'];
 $body   = json_decode(file_get_contents('php://input'), true) ?? [];
+
+// Alterar o destaque (e buscar receitas para o seletor) é só para admin
+if ($method !== 'GET' || isset($_GET['busca'])) {
+    $usuario = Auth::requireAuth();
+    if ((int) ($usuario['is_admin'] ?? 0) !== 1) {
+        http_response_code(403);
+        echo json_encode(['mensagem' => 'Acesso restrito ao administrador.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
 
 try {
     switch ($method) {
@@ -51,5 +62,6 @@ try {
     }
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['mensagem' => 'Erro interno: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    \App\Config\Logger::error('destaque', 'Erro na receita da semana', ['erro' => $e->getMessage()]);
+    echo json_encode(['mensagem' => 'Erro interno.'], JSON_UNESCAPED_UNICODE);
 }

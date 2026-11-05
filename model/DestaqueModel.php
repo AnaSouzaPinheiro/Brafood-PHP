@@ -3,6 +3,7 @@
 namespace App\Model;
 
 use App\Config\Database;
+use App\Service\HomeRotacaoService;
 use PDO;
 
 class DestaqueModel
@@ -14,8 +15,105 @@ class DestaqueModel
         $this->conn = Database::getInstance()->getConnection();
     }
 
-    /** Retorna a receita em destaque ou null se não houver nenhuma */
+    /** Semanas sem repetir uma receita já destacada */
+    private const SEMANAS_SEM_REPETIR = 8;
+
+    /**
+     * Receita da semana.
+     *   1. Já escolhida nesta semana (histórico) → ela.
+     *   2. Admin marcou uma nesta semana → ela (vira escolha manual da semana).
+     *   3. Senão, escolhe automaticamente por pontuação e grava no histórico.
+     */
     public function buscarDestaque(): ?array
+    {
+        $semana = HomeRotacaoService::semanaAtual();
+
+        $stmt = $this->conn->prepare('SELECT receita_id FROM destaque_historico WHERE semana = ?');
+        $stmt->execute([$semana]);
+        $idReceita = $stmt->fetchColumn();
+
+        if ($idReceita && ($receita = $this->buscarReceita((int) $idReceita))) {
+            return $receita;
+        }
+
+        // Escolha manual feita nesta semana pelo painel
+        $stmt = $this->conn->prepare(
+            'SELECT id FROM receitas WHERE destaque = 1 AND destaque_desde >= ? LIMIT 1'
+        );
+        $stmt->execute([HomeRotacaoService::inicioDaSemana()]);
+        $manual = $stmt->fetchColumn();
+
+        $idReceita = $manual ? (int) $manual : $this->escolherAutomaticamente();
+        if (!$idReceita) {
+            return null;
+        }
+
+        $this->registrarSemana($semana, $idReceita, (bool) $manual);
+        return $this->buscarReceita($idReceita);
+    }
+
+    /**
+     * Pontuação: favoritos + avaliações + bônus para receitas novas,
+     * com um sorteio leve (semente da semana) para variar entre empates.
+     * Ignora receitas destacadas nas últimas semanas.
+     */
+    private function escolherAutomaticamente(): ?int
+    {
+        $stmt = $this->conn->prepare(
+            'SELECT receita_id FROM destaque_historico ORDER BY semana DESC LIMIT ' . self::SEMANAS_SEM_REPETIR
+        );
+        $stmt->execute();
+        $recentes = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+
+        $notIn = $recentes ? 'WHERE id NOT IN (' . implode(',', $recentes) . ')' : '';
+
+        $sql = "SELECT id
+                FROM receitas
+                $notIn
+                ORDER BY
+                    COALESCE(qtd_fav, 0) * 2
+                  + COALESCE(media_avaliacao, 0) * LEAST(COALESCE(qtd_avaliacoes, 0), 10)
+                  + IF(data_criacao >= NOW() - INTERVAL 30 DAY, 5, 0)
+                  + RAND(:seed) * 4
+                DESC
+                LIMIT 1";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindValue(':seed', HomeRotacaoService::sementeSemanal(), PDO::PARAM_INT);
+        $stmt->execute();
+        $id = $stmt->fetchColumn();
+
+        // Poucas receitas e todas destacadas recentemente: libera a repetição
+        if (!$id && $recentes) {
+            $id = $this->conn->query('SELECT id FROM receitas ORDER BY RAND() LIMIT 1')->fetchColumn();
+        }
+
+        return $id ? (int) $id : null;
+    }
+
+    private function registrarSemana(string $semana, int $idReceita, bool $manual): void
+    {
+        $this->conn->beginTransaction();
+        try {
+            $stmt = $this->conn->prepare(
+                'INSERT INTO destaque_historico (semana, receita_id, manual) VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE receita_id = VALUES(receita_id), manual = VALUES(manual)'
+            );
+            $stmt->execute([$semana, $idReceita, $manual ? 1 : 0]);
+
+            // Mantém a coluna "destaque" coerente com a escolha da semana
+            $this->conn->exec('UPDATE receitas SET destaque = 0, destaque_desde = NULL WHERE destaque = 1');
+            $stmt = $this->conn->prepare('UPDATE receitas SET destaque = 1, destaque_desde = NOW() WHERE id = ?');
+            $stmt->execute([$idReceita]);
+
+            $this->conn->commit();
+        } catch (\Throwable $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
+
+    private function buscarReceita(int $id): ?array
     {
         $stmt = $this->conn->prepare("
             SELECT
@@ -35,44 +133,28 @@ class DestaqueModel
             LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
             LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
             LEFT JOIN categorias c ON c.id = s.id_categoria
-            WHERE r.destaque = 1
+            WHERE r.id = ?
             GROUP BY r.id
-            LIMIT 1
         ");
-        $stmt->execute();
+        $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
-    /** Ativa o destaque de uma receita e desativa todas as outras */
+    /** Admin escolhe a receita da semana atual */
     public function ativarDestaque(int $idReceita): bool
     {
-        $this->conn->beginTransaction();
-        try {
-            // Remove destaque de todas
-            $this->conn->exec("UPDATE receitas SET destaque = 0, destaque_desde = NULL");
-            // Ativa só esta
-            $stmt = $this->conn->prepare("
-                UPDATE receitas
-                SET destaque = 1, destaque_desde = NOW()
-                WHERE id = ?
-            ");
-            $stmt->execute([$idReceita]);
-            $this->conn->commit();
-            return true;
-        } catch (\Throwable $e) {
-            $this->conn->rollBack();
-            throw $e;
-        }
+        $this->registrarSemana(HomeRotacaoService::semanaAtual(), $idReceita, true);
+        return true;
     }
 
-    /** Remove o destaque (nenhuma receita fica destacada) */
+    /** Admin desfaz a escolha da semana: volta para a escolha automática */
     public function removerDestaque(): bool
     {
-        $stmt = $this->conn->exec(
-            "UPDATE receitas SET destaque = 0, destaque_desde = NULL WHERE destaque = 1"
-        );
-        return $stmt !== false;
+        $stmt = $this->conn->prepare('DELETE FROM destaque_historico WHERE semana = ?');
+        $stmt->execute([HomeRotacaoService::semanaAtual()]);
+        $this->conn->exec('UPDATE receitas SET destaque = 0, destaque_desde = NULL WHERE destaque = 1');
+        return true;
     }
 
     /** Lista receitas para o seletor do admin (id + titulo + imagem) */

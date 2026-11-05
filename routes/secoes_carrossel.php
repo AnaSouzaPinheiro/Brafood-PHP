@@ -5,17 +5,16 @@ require_once __DIR__ . '/../config/core.php';
 use App\Controller\SecaoCarrosselCtl;
 
 // ── Cache em arquivo ──────────────────────────────────────────────────────────
-// TTL de 10 minutos. O cache é invalidado automaticamente ao expirar.
-// Para forçar rebuild (ex: após alterar seções no admin), DELETE o arquivo
-// ou chame este endpoint com ?purge=1 a partir do painel admin.
+// A home roda com semente diária, então o conteúdo é o mesmo o dia todo:
+// um arquivo por dia, válido por 6h (para refletir novas receitas/favoritos).
+// Alterações no painel admin apagam o cache (AdminSecaoModel::purgeCache).
 
-define('CACHE_TTL',  600); // segundos
-define('CACHE_FILE', sys_get_temp_dir() . '/brafood_secoes_cache.json');
+define('CACHE_TTL',  6 * 3600); // segundos
+define('CACHE_FILE', sys_get_temp_dir() . '/brafood_secoes_cache_' . date('Ymd') . '.json');
 
-// Purge manual pelo admin (apenas requisições locais ou autenticadas)
 if (isset($_GET['purge'])) {
-    if (file_exists(CACHE_FILE)) {
-        unlink(CACHE_FILE);
+    foreach (glob(sys_get_temp_dir() . '/brafood_secoes_cache*.json') ?: [] as $f) {
+        @unlink($f);
     }
     echo json_encode(['purged' => true], JSON_UNESCAPED_UNICODE);
     exit;

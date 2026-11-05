@@ -23,10 +23,12 @@ class SecaoCarrossel
 
     public function getReceitasBySecao(
         int $secao_id,
-        array $idsIgnorar = []
+        array $idsIgnorar = [],
+        int $semente = 0
     ) {
         $params = [
-            ':secao_id' => $secao_id
+            ':secao_id' => $secao_id,
+            ':seed'     => $semente,
         ];
 
         $notIn = '';
@@ -60,7 +62,7 @@ class SecaoCarrossel
                 WHERE rs.secao_id = :secao_id
                 $notIn
                 GROUP BY r.id
-                ORDER BY RAND()";
+                ORDER BY RAND(:seed)";
 
         $stmt = $this->conn->prepare($sql);
 
@@ -73,9 +75,9 @@ class SecaoCarrossel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    private function getReceitasAleatorias(int $limit = 6, ?int $idCategoria = null, ?int $idSubcategoria = null, array $idsIgnorar = [])
+    private function getReceitasAleatorias(int $limit = 6, ?int $idCategoria = null, ?int $idSubcategoria = null, array $idsIgnorar = [], int $semente = 0)
     {
-        $params = [':limit' => $limit];
+        $params = [':limit' => $limit, ':seed' => $semente];
         $whereConditions = [];
 
         // Filtro por subcategoria
@@ -125,13 +127,13 @@ class SecaoCarrossel
                 LEFT JOIN categorias c ON c.id = s.id_categoria
                 $where
                 GROUP BY r.id
-                ORDER BY RAND()
+                ORDER BY RAND(:seed)
                 LIMIT :limit";
 
         $stmt = $this->conn->prepare($sql);
 
         foreach ($params as $key => $value) {
-            if ($key === ':limit') {
+            if ($key === ':limit' || $key === ':seed') {
                 $stmt->bindValue($key, $value, PDO::PARAM_INT);
             } else {
                 $stmt->bindValue($key, $value);
@@ -143,15 +145,18 @@ class SecaoCarrossel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getReceitasDaSecao(array $secao, array $idsIgnorar = [])
+    public function getReceitasDaSecao(array $secao, array $idsIgnorar = [], int $semente = 0)
     {
         $modo = $secao['modo'] ?? 'aleatorio';
+        // Cada seção tem sua própria ordem, mas estável durante o dia
+        $semente += (int) ($secao['id'] ?? 0);
 
         // ── Manual
         if ($modo === 'manual') {
             return $this->getReceitasBySecao(
                 (int) $secao['id'],
-                $idsIgnorar
+                $idsIgnorar,
+                $semente
             );
         }
 
@@ -166,8 +171,89 @@ class SecaoCarrossel
                 ? (int) $secao['id_subcategoria']
                 : null,
 
-            $idsIgnorar
+            $idsIgnorar,
+            $semente
         );
+    }
+
+    /**
+     * Receitas das seções automáticas.
+     * $tipo: novidades | mais_favoritadas | mais_avaliadas | categoria
+     */
+    public function getReceitasAuto(string $tipo, int $limit, array $idsIgnorar = [], ?int $idCategoria = null, int $semente = 0): array
+    {
+        $params = [':limit' => $limit];
+        $where  = [];
+
+        switch ($tipo) {
+            case 'novidades':
+                $order = 'r.data_criacao DESC';
+                break;
+            case 'mais_favoritadas':
+                $where[] = 'r.qtd_fav > 0';
+                $order   = 'r.qtd_fav DESC, r.data_criacao DESC';
+                break;
+            case 'mais_avaliadas':
+                $where[] = 'r.qtd_avaliacoes >= 1 AND r.media_avaliacao >= 3.5';
+                $order   = 'r.media_avaliacao DESC, r.qtd_avaliacoes DESC';
+                break;
+            case 'categoria':
+                $where[] = 's.id_categoria = :idCat';
+                $params[':idCat'] = (int) $idCategoria;
+                $params[':seed']  = $semente;
+                $order = 'RAND(:seed)';
+                break;
+            default:
+                return [];
+        }
+
+        foreach (array_values($idsIgnorar) as $i => $id) {
+            $params[":ignore$i"] = (int) $id;
+        }
+        if ($idsIgnorar) {
+            $where[] = 'r.id NOT IN (' . implode(',', array_map(fn($i) => ":ignore$i", array_keys(array_values($idsIgnorar)))) . ')';
+        }
+
+        $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $sql = "SELECT
+                    r.id, r.titulo, r.resumo, r.imagem1, r.qtd_fav,
+                    r.media_avaliacao, r.qtd_avaliacoes,
+                    c.nome AS categoria,
+                    s.nome AS subcategoria
+                FROM receitas r
+                LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+                LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+                LEFT JOIN categorias c ON c.id = s.id_categoria
+                $whereSql
+                GROUP BY r.id
+                ORDER BY $order
+                LIMIT :limit";
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Categorias com pelo menos $minimo receitas (para a "categoria da semana") */
+    public function categoriasComReceitas(int $minimo): array
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT c.id, c.nome, COUNT(DISTINCT rs.id_receita) AS total
+             FROM categorias c
+             JOIN subcategorias s ON s.id_categoria = c.id
+             JOIN receita_subcategoria rs ON rs.id_subcategoria = s.id
+             GROUP BY c.id, c.nome
+             HAVING total >= :minimo
+             ORDER BY c.id"
+        );
+        $stmt->bindValue(':minimo', $minimo, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function createSecao($titulo, $url_fundo, $fundo_titulo, $ordem = 0)

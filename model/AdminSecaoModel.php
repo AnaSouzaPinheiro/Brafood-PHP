@@ -41,7 +41,10 @@ class AdminSecaoModel
                 id_subcategoria,
                 modo,
                 card_exibir,
-                ordem
+                ordem,
+                ativo_de,
+                ativo_ate,
+                fixar_ate
              FROM secoes_carrossel
              ORDER BY ordem ASC, id ASC"
         );
@@ -56,7 +59,8 @@ class AdminSecaoModel
                 titulo_cor_tipo, titulo_cor_solid,
                 titulo_gradiente_1, titulo_gradiente_2,
                 url_fundo, cor_fundo, fundo_titulo,
-                id_categoria, id_subcategoria, modo, card_exibir, ordem
+                id_categoria, id_subcategoria, modo, card_exibir, ordem,
+                ativo_de, ativo_ate, fixar_ate
          FROM secoes_carrossel WHERE id = ?"
         );
         $stmt->execute([$id]);
@@ -83,9 +87,12 @@ class AdminSecaoModel
                 id_subcategoria,
                 modo,
                 card_exibir,
-                ordem
+                ordem,
+                ativo_de,
+                ativo_ate,
+                fixar_ate
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->execute([
             $data['titulo'],
@@ -103,6 +110,9 @@ class AdminSecaoModel
             $data['modo']            ?? 'aleatorio',
             $data['card_exibir']     ?? 'categoria',
             $data['ordem']           ?? 99,
+            self::mesDia($data['ativo_de']  ?? null),
+            self::mesDia($data['ativo_ate'] ?? null),
+            self::data($data['fixar_ate']   ?? null),
         ]);
         $id = (int) $this->conn->lastInsertId();
         $this->purgeCache();
@@ -128,7 +138,10 @@ class AdminSecaoModel
                 id_subcategoria = ?,
                 modo            = ?,
                 card_exibir     = ?,
-                ordem           = ?
+                ordem           = ?,
+                ativo_de        = ?,
+                ativo_ate       = ?,
+                fixar_ate       = ?
              WHERE id = ?"
         );
         $result = $stmt->execute([
@@ -147,6 +160,9 @@ class AdminSecaoModel
             $data['modo']            ?? 'aleatorio',
             $data['card_exibir']     ?? 'categoria',
             $data['ordem']           ?? 99,
+            self::mesDia($data['ativo_de']  ?? null),
+            self::mesDia($data['ativo_ate'] ?? null),
+            self::data($data['fixar_ate']   ?? null),
 
             $id,
         ]);
@@ -214,11 +230,26 @@ class AdminSecaoModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** "MM-DD" válido ou null */
+    private static function mesDia($v): ?string
+    {
+        $v = trim((string) $v);
+        if (!preg_match('/^(\d{2})-(\d{2})$/', $v, $m)) return null;
+        return checkdate((int) $m[1], (int) $m[2], 2024) ? $v : null; // 2024: aceita 29/02
+    }
+
+    /** "YYYY-MM-DD" válido ou null */
+    private static function data($v): ?string
+    {
+        $v = trim((string) $v);
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m)) return null;
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $v : null;
+    }
+
     /** Remove o cache de seções para forçar rebuild na próxima requisição */
     private function purgeCache(): void
     {
-        $file = sys_get_temp_dir() . '/brafood_secoes_cache.json';
-        if (file_exists($file)) {
+        foreach (glob(sys_get_temp_dir() . '/brafood_secoes_cache*.json') ?: [] as $file) {
             @unlink($file);
         }
     }
