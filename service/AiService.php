@@ -11,12 +11,30 @@ class AiService
 {
     private $apiKey;
 
+    /**
+     * Modelos gratuitos em ordem de preferência. A OpenRouter tenta o próximo
+     * automaticamente se um estiver indisponível. "openrouter/free" escolhe
+     * qualquer modelo gratuito disponível e serve de última opção.
+     * Pode ser sobrescrito no .env: OPENROUTER_MODELS=modelo1,modelo2,modelo3
+     */
+    private const DEFAULT_MODELS = [
+        'nvidia/nemotron-3.5-super-vl:free',
+        'google/gemma-4-31b-it:free',
+        'openrouter/free',
+    ];
+
+    private array $models;
+
     private string $apiUrl =
     "https://openrouter.ai/api/v1/chat/completions";
 
     public function __construct()
     {
         $this->apiKey = OPENROUTER_API_KEY;
+
+        $fromEnv = array_filter(array_map('trim', explode(',', $_ENV['OPENROUTER_MODELS'] ?? '')));
+        // A OpenRouter aceita no máximo 3 modelos no fallback
+        $this->models = array_slice($fromEnv ?: self::DEFAULT_MODELS, 0, 3);
     }
 
     public function parseRecipe(string $textoReceita): array
@@ -73,7 +91,10 @@ class AiService
                     ]
                 );
 
-                if (str_contains($e->getMessage(), 'limite de tokens')) {
+                // Não adianta repetir: erro de configuração/modelo (4xx exceto 429) ou corte por tokens
+                $code = $e->getCode();
+                if (str_contains($e->getMessage(), 'limite de tokens')
+                    || ($code >= 400 && $code < 500 && $code !== 429)) {
                     break;
                 }
             }
@@ -187,15 +208,18 @@ RECEITA:
     private function callOpenRouter(string $prompt): string
     {
         $data = [
-            "model" => "openai/gpt-oss-20b:free",
+            "models" => $this->models,
             "messages" => [
                 [
                     "role" => "user",
                     "content" => $prompt
                 ]
             ],
+            // Desliga o "raciocínio" dos modelos que pensam antes de responder:
+            // sem isso eles gastam o limite de tokens e a resposta vem cortada
+            "reasoning" => ["enabled" => false],
             "temperature" => 0.2,
-            "max_tokens" => 2500
+            "max_tokens" => 6000
         ];
 
         $ch = curl_init($this->apiUrl);
@@ -244,12 +268,14 @@ RECEITA:
                 'OpenRouter retornou erro HTTP',
                 [
                     'http_code' => $httpCode,
+                    'modelos' => $this->models,
                     'response' => $result
                 ]
             );
 
             throw new Exception(
-                'Erro na OpenRouter. HTTP ' . $httpCode
+                'Erro na OpenRouter. HTTP ' . $httpCode,
+                $httpCode
             );
         }
 
@@ -297,6 +323,7 @@ RECEITA:
             'ai/receitas',
             'Resposta da IA finalizada',
             [
+                'modelo' => $data['model'] ?? null,
                 'finish_reason' => $finishReason,
                 'completion_tokens' => $data['usage']['completion_tokens'] ?? null
             ]
