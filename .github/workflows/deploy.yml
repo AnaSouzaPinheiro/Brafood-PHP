@@ -16,6 +16,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verificar Secrets obrigatórios
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+          APP_URL: ${{ secrets.APP_URL }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          ALLOWED_ORIGIN: ${{ secrets.ALLOWED_ORIGIN }}
+          MAIL_USER: ${{ secrets.MAIL_USER }}
+          MAIL_PASS: ${{ secrets.MAIL_PASS }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          missing=0
+          for k in FTP_SERVER FTP_USER FTP_PASS APP_URL DB_HOST DB_NAME DB_USER DB_PASSWORD ALLOWED_ORIGIN MAIL_USER MAIL_PASS OPENROUTER_API_KEY; do
+            if [ -z "${!k}" ]; then echo "::error::Secret ausente: $k"; missing=1; fi
+          done
+          exit $missing
+
       - name: Instalar dependências (sem dev)
         run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
