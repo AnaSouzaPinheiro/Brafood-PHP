@@ -17,6 +17,13 @@ RewriteRule ^(.*)$ $1 [R=200,L]
 
 # CORS: libera apenas as origens conhecidas (prod e dev local)
 <IfModule mod_headers.c>
+    # O cors.php também envia esses headers; remove os do PHP para não
+    # duplicar (o navegador rejeita Access-Control-Allow-Origin repetido)
+    Header unset Access-Control-Allow-Origin
+    Header unset Access-Control-Allow-Methods
+    Header unset Access-Control-Allow-Headers
+    Header unset Access-Control-Allow-Credentials
+
     SetEnvIf Origin "^(https://brafood\.page\.gd|http://localhost:4200)$" CORS_ORIGIN=$1
     Header always set Access-Control-Allow-Origin "%{CORS_ORIGIN}e" env=CORS_ORIGIN
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
