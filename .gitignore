@@ -35,3 +35,6 @@ cachegrind.out.*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Logs organizados por dia (logs/AAAA-MM-DD/*.log)
+/logs/*/
