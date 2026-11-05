@@ -1,16 +1,22 @@
 <?php
 
-// ERROR HANDLING
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/../logs/php-error.log');
-ini_set('display_errors', 0);
-error_reporting(E_ALL);
-
 // PREVENIR DUPLA EXECUÇÃO
 if (defined('__APP_BOOTSTRAPPED')) {
     return;
 }
 define('__APP_BOOTSTRAPPED', true);
+
+// FUSO HORÁRIO (define em qual pasta de dia o log cai)
+date_default_timezone_set('America/Sao_Paulo');
+
+// ERROR HANDLING — erros nativos do PHP vão para logs/AAAA-MM-DD/php.log
+require_once __DIR__ . '/Logger.php';
+
+$phpLogDir = \App\Config\Logger::dayDir();
+ini_set('log_errors', 1);
+ini_set('error_log', $phpLogDir ? "$phpLogDir/php.log" : __DIR__ . '/../logs/php-error.log');
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
 // CARREGAR .env (fonte única de configuração em dev e prod)
 require_once __DIR__ . '/env.php';
