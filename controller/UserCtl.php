@@ -8,6 +8,7 @@ namespace App\Controller;
 use App\Model\UserModel;
 use Exception;
 use App\Config\Logger;
+use App\Service\ApelidoService;
 
 class UserCtl
 {
@@ -22,12 +23,21 @@ class UserCtl
     {
         $id = (int) $dados['id'];
 
+        $apelido = trim((string) ($dados['apelido'] ?? ''));
+        if ($erro = (new ApelidoService())->validar($apelido, $id)) {
+            return [
+                'success'  => false,
+                'campo'    => 'apelido',
+                'mensagem' => $erro,
+            ];
+        }
+
         try {
             $this->model->editarUsuario(
                 $id,
                 $dados['nome']        ?? '',
                 $dados['sobrenome']   ?? '',
-                $dados['apelido']     ?? '',
+                $apelido,
                 $dados['email']       ?? '',
                 $dados['genero']      ?? '',
                 $dados['bio']         ?? '',
