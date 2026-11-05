@@ -1,8 +1,28 @@
 RewriteEngine On
 
-# Deixa o OPTIONS passar para o PHP processar (onde o cors.php roda)
+# Bloqueia acesso público a arquivos sensíveis (.env, composer, logs...)
+<FilesMatch "^(\.env.*|composer\.(json|lock)|phpunit\.xml|.*\.log)$">
+    Require all denied
+</FilesMatch>
+RedirectMatch 403 ^/(.*/)?(vendor|logs|tests|\.git)(/|$)
+
+# Hospedagens com PHP via CGI/FastCGI (InfinityFree incluso) descartam o
+# header Authorization por padrão. Repassa para o PHP conseguir ler.
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%1]
+
+# Responde preflight OPTIONS direto, sem passar pelo PHP
 RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^(.*)$ $1 [L]
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# CORS: libera apenas as origens conhecidas (prod e dev local)
+<IfModule mod_headers.c>
+    SetEnvIf Origin "^(https://brafood\.page\.gd|http://localhost:4200)$" CORS_ORIGIN=$1
+    Header always set Access-Control-Allow-Origin "%{CORS_ORIGIN}e" env=CORS_ORIGIN
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-User-Id"
+    Header always set Access-Control-Allow-Credentials "true"
+</IfModule>
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
