@@ -34,6 +34,7 @@ class ReceitaModel
                 r.data_criacao,
                 r.imagem1,
                 CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                u.apelido AS autor_apelido,
                 c.nome AS categoria
             FROM receitas r
             JOIN usuarios u ON r.id_usuario = u.id
@@ -68,6 +69,7 @@ class ReceitaModel
                 r.data_criacao,
                 r.imagem1,
                 CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                u.apelido AS autor_apelido,
                 c.nome AS categoria
             FROM receitas r
             JOIN usuarios u ON r.id_usuario = u.id
@@ -98,6 +100,7 @@ class ReceitaModel
             r.data_criacao,
             r.imagem1,
             CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                u.apelido AS autor_apelido,
             GROUP_CONCAT(DISTINCT c.nome SEPARATOR ', ') AS categoria
         FROM receitas r
         JOIN usuarios u ON r.id_usuario = u.id
@@ -121,6 +124,7 @@ class ReceitaModel
         // possa pre-selecionar os dropdowns por valor, nao por nome.
         $sql = "SELECT r.*,
                        CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor,
+                u.apelido AS autor_apelido,
                        u.foto_perfil,
                        u.bio,
                        GROUP_CONCAT(DISTINCT c.nome SEPARATOR ', ') AS categoria,
@@ -249,6 +253,7 @@ class ReceitaModel
                     r.data_criacao,
                     r.imagem1,
                     CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                u.apelido AS autor_apelido,
                     c.nome AS categoria,
                     s.id   AS sub_id,
                     s.nome AS sub_nome

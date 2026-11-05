@@ -9,6 +9,7 @@ namespace App\Controller;
 
 use App\Model\LoginModel;
 use App\Config\Logger;
+use App\Service\ApelidoService;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -54,10 +55,22 @@ class LoginCtl
             return ['success' => false, 'message' => 'Dados obrigatórios ausentes.'];
         }
 
+        // Apelido = identificador público (/chef/{apelido}). Se não vier,
+        // gera um a partir do nome; se vier, valida formato e unicidade.
+        $apelidoService = new ApelidoService();
+        $apelido = trim((string) ($data['apelido'] ?? ''));
+
+        if ($apelido === '') {
+            $apelido = $apelidoService->sugerir($data['nome'] ?? '');
+        } elseif ($erro = $apelidoService->validar($apelido)) {
+            return ['success' => false, 'errors' => ['apelido' => $erro]];
+        }
+
         $result = $this->model->cadastrar(
             $data['nome']           ?? '',
             $data['email'],
-            $data['senha']
+            $data['senha'],
+            $apelido
         );
 
         if ($result['success'] ?? false) {

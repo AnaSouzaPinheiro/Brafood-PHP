@@ -14,7 +14,7 @@ class LoginModel
         $this->conn = Database::getInstance()->getConnection();
     }
 
-    public function cadastrar($nome, $email, $senha)
+    public function cadastrar($nome, $email, $senha, $apelido)
     {
         $erros = $this->validarSenha($senha);
         $errosFiltrados = array_filter($erros);
@@ -30,7 +30,8 @@ class LoginModel
 
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
-        $stmt = $this->conn->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (:nome, :email, :senha)");
+        $stmt = $this->conn->prepare("INSERT INTO usuarios (nome, apelido, email, senha) VALUES (:nome, :apelido, :email, :senha)");
+        $stmt->bindParam(':apelido', $apelido);
         $stmt->bindParam(':nome', $nome);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':senha', $senhaHash);

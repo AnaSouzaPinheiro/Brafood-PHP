@@ -13,16 +13,23 @@ if ($method !== 'GET') {
     exit;
 }
 
-$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+// Perfil é buscado pelo apelido (/chef/{apelido}). O ?id= continua
+// aceito para os links antigos (/chef/5), que o front redireciona.
+$apelido = trim((string) ($_GET['apelido'] ?? ''));
+$id      = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-if (!$id) {
+if ($apelido === '' && !$id) {
     http_response_code(400);
-    echo json_encode(['mensagem' => 'ID do usuário não informado.'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['mensagem' => 'Usuário não informado.'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 try {
-    $perfil = $model->buscarPerfil($id);
+    if ($apelido !== '') {
+        $id = $model->buscarIdPorApelido($apelido) ?? 0;
+    }
+
+    $perfil = $id ? $model->buscarPerfil($id) : null;
 
     if (!$perfil) {
         http_response_code(404);
@@ -33,5 +40,6 @@ try {
     echo json_encode($perfil, JSON_UNESCAPED_UNICODE);
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['mensagem' => 'Erro interno: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    \App\Config\Logger::error('perfil_publico', 'Erro ao buscar perfil', ['erro' => $e->getMessage()]);
+    echo json_encode(['mensagem' => 'Erro interno.'], JSON_UNESCAPED_UNICODE);
 }

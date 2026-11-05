@@ -14,6 +14,14 @@ class PerfilPublicoModel
         $this->conn = Database::getInstance()->getConnection();
     }
 
+    public function buscarIdPorApelido(string $apelido): ?int
+    {
+        $stmt = $this->conn->prepare('SELECT id FROM usuarios WHERE LOWER(apelido) = LOWER(?) LIMIT 1');
+        $stmt->execute([$apelido]);
+        $id = $stmt->fetchColumn();
+        return $id !== false ? (int) $id : null;
+    }
+
     public function buscarPerfil(int $id): ?array
     {
         // Dados do usuário
