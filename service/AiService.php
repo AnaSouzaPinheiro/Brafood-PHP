@@ -5,7 +5,7 @@ namespace App\Service;
 use Exception;
 use App\Config\Logger;
 
-require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/bootstrap.php';
 
 class AiService
 {

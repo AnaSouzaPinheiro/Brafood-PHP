@@ -6,7 +6,7 @@ use PDO;
 use PDOException;
 use App\Config\Logger;
 
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/bootstrap.php';
 
 class Database
 {
