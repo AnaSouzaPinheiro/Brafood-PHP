@@ -30,9 +30,10 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PASS: ${{ secrets.MAIL_PASS }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          POLLINATIONS_KEY: ${{ secrets.POLLINATIONS_KEY }}
         run: |
           missing=0
-          for k in FTP_SERVER FTP_USER FTP_PASS APP_URL DB_HOST DB_NAME DB_USER DB_PASSWORD ALLOWED_ORIGIN MAIL_USER MAIL_PASS OPENROUTER_API_KEY; do
+          for k in FTP_SERVER FTP_USER FTP_PASS APP_URL DB_HOST DB_NAME DB_USER DB_PASSWORD ALLOWED_ORIGIN MAIL_USER MAIL_PASS OPENROUTER_API_KEY POLLINATIONS_KEY; do
             if [ -z "${!k}" ]; then echo "::error::Secret ausente: $k"; missing=1; fi
           done
           exit $missing
@@ -51,10 +52,11 @@ jobs:
           MAIL_USER: ${{ secrets.MAIL_USER }}
           MAIL_PASS: ${{ secrets.MAIL_PASS }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          POLLINATIONS_KEY: ${{ secrets.POLLINATIONS_KEY }}
         run: |
           {
             echo "APP_ENV=production"
-            for k in APP_URL DB_HOST DB_NAME DB_USER DB_PASSWORD ALLOWED_ORIGIN MAIL_USER MAIL_PASS OPENROUTER_API_KEY; do
+            for k in APP_URL DB_HOST DB_NAME DB_USER DB_PASSWORD ALLOWED_ORIGIN MAIL_USER MAIL_PASS OPENROUTER_API_KEY POLLINATIONS_KEY; do
               printf '%s="%s"\n' "$k" "${!k}"
             done
             echo "DB_PORT=3306"

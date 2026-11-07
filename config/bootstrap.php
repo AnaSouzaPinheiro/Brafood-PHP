@@ -39,6 +39,7 @@ $defaults = [
     'MAIL_USER'          => '',
     'MAIL_PASS'          => '',
     'OPENROUTER_API_KEY' => '',
+    'POLLINATIONS_KEY'   => '',
 ];
 
 $config = [];

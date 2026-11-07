@@ -379,4 +379,43 @@ RECEITA:
 
         return $json;
     }
+
+    /**
+     * Sugere ícones (em inglês) e uma paleta de 2–3 cores para o padrão
+     * doodle de fundo de uma seção, a partir do título e das receitas/categoria.
+     *
+     * @return array{icones: string, cores: string[]}
+     */
+    public function sugerirIcones(string $tema, string $contexto): array
+    {
+        $prompt = "You help design a decorative doodle pattern for a recipe website section.\n"
+            . "Section title (Portuguese): {$tema}\n"
+            . "Related recipes/category (Portuguese): {$contexto}\n\n"
+            . "Answer with EXACTLY two lines and nothing else:\n"
+            . "ICONS: 8 to 10 simple, easily recognizable objects to draw as small line-art icons that "
+            . "represent this theme and these foods (dishes, ingredients, utensils, symbols), in English, "
+            . "comma separated, lowercase.\n"
+            . "COLORS: 2 or 3 hex colors (format #rrggbb) typical of this theme, comma separated.";
+
+        $response = $this->callOpenRouter($prompt);
+        $data     = json_decode($response, true);
+        $texto    = (string) ($data['choices'][0]['message']['content'] ?? '');
+
+        if (preg_match('/ICONS?\s*:\s*(.+)/i', $texto, $m)) {
+            $icones = $m[1];
+        } else {
+            // Modelo ignorou o formato: usa a primeira linha, sem as cores
+            $icones = strtok(preg_replace('/#[0-9a-f]{6}/i', '', $texto), "\n");
+        }
+        $icones = trim(preg_replace('/\s+/', ' ', (string) $icones), " .\"'*");
+
+        preg_match_all('/#[0-9a-f]{6}\b/i', $texto, $hex);
+        $cores = array_slice(array_values(array_unique(array_map('strtolower', $hex[0]))), 0, 3);
+
+        if ($icones === '') {
+            throw new Exception('Resposta vazia da OpenRouter');
+        }
+
+        return ['icones' => mb_substr($icones, 0, 400), 'cores' => $cores];
+    }
 }
