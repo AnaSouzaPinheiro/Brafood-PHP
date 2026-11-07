@@ -35,4 +35,14 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
+# Miniatura de card ainda não gerada → thumb.php cria, salva e serve
+RewriteRule ^uploads/receitas/thumbs/([A-Za-z0-9_.-]+)\.webp$ thumb.php?f=$1 [L]
+
 RewriteRule ^ index.php [L]
+
+# Uploads têm nome único (uniqid), então o navegador pode guardar por 1 ano
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpe?g|png|webp|gif)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+</IfModule>

@@ -43,7 +43,11 @@ $imagensAntigas = array_merge(
 // ── Upload das imagens novas ─────────────────────────────────────────────────
 $uploadService = new UploadService(
     __DIR__ . '/../../uploads/receitas/',
-    'uploads/receitas'
+    'uploads/receitas',
+    1600, // largura máx.: slide da home e página da receita (cards usam miniatura)
+    1600,
+    false,
+    85
 );
 
 // Capa: se não veio arquivo novo, mantém a capa atual do banco

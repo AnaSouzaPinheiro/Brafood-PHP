@@ -23,7 +23,11 @@ $dados['autor'] = $usuarioLogado['id'];
 
 $uploadService = new UploadService(
     __DIR__ . '/../../uploads/receitas/',
-    'uploads/receitas'
+    'uploads/receitas',
+    1600, // largura máx.: slide da home e página da receita (cards usam miniatura)
+    1600,
+    false,
+    85
 );
 
 // Sem fallback: é um cadastro novo, não há imagens anteriores
