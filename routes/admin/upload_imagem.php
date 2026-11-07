@@ -69,8 +69,9 @@ switch ($contexto) {
     case 'secoes':
 
         $maxLargura = 1920;
-        $maxAltura  = 529;
-        $crop = true;
+        // Sem corte: mantém a proporção original. Quem enquadra é o
+        // background-size: cover na tela; cortar aqui cortava duas vezes.
+        $maxAltura  = 1920;
 
         break;
 
