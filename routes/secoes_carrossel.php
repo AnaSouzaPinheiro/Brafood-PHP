@@ -10,10 +10,10 @@ use App\Controller\SecaoCarrosselCtl;
 // Alterações no painel admin apagam o cache (AdminSecaoModel::purgeCache).
 
 define('CACHE_TTL',  6 * 3600); // segundos
-define('CACHE_FILE', sys_get_temp_dir() . '/brafood_secoes_cache_' . date('Ymd') . '.json');
+define('CACHE_FILE', cacheDir() . '/brafood_secoes_cache_' . date('Ymd') . '.json');
 
 if (isset($_GET['purge'])) {
-    foreach (glob(sys_get_temp_dir() . '/brafood_secoes_cache*.json') ?: [] as $f) {
+    foreach (glob(cacheDir() . '/brafood_secoes_cache*.json') ?: [] as $f) {
         @unlink($f);
     }
     echo json_encode(['purged' => true], JSON_UNESCAPED_UNICODE);

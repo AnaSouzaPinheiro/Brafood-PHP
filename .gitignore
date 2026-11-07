@@ -38,3 +38,6 @@ Thumbs.db
 
 # Logs organizados por dia (logs/AAAA-MM-DD/*.log)
 /logs/*/
+
+# Cache de respostas da API (gerado em runtime)
+/cache/

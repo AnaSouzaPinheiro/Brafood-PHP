@@ -29,3 +29,19 @@ if (!function_exists('getRequestHeader')) {
         return '';
     }
 }
+
+if (!function_exists('cacheDir')) {
+    /**
+     * Pasta de cache dentro da própria API. Não usamos sys_get_temp_dir():
+     * em hospedagem compartilhada ela pode variar entre requisições, e aí
+     * a limpeza feita pelo painel admin não encontrava o arquivo.
+     */
+    function cacheDir(): string
+    {
+        $dir = __DIR__ . '/../cache';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        return $dir;
+    }
+}

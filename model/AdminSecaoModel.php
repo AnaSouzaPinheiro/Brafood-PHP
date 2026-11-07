@@ -249,7 +249,7 @@ class AdminSecaoModel
     /** Remove o cache de seções para forçar rebuild na próxima requisição */
     private function purgeCache(): void
     {
-        foreach (glob(sys_get_temp_dir() . '/brafood_secoes_cache*.json') ?: [] as $file) {
+        foreach (glob(cacheDir() . '/brafood_secoes_cache*.json') ?: [] as $file) {
             @unlink($file);
         }
     }

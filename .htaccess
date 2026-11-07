@@ -4,7 +4,7 @@ RewriteEngine On
 <FilesMatch "^(\.env.*|composer\.(json|lock)|phpunit\.xml|.*\.log)$">
     Require all denied
 </FilesMatch>
-RedirectMatch 403 ^/(.*/)?(vendor|logs|tests|\.git)(/|$)
+RedirectMatch 403 ^/(.*/)?(vendor|logs|tests|cache|\.git)(/|$)
 
 # Hospedagens com PHP via CGI/FastCGI (InfinityFree incluso) descartam o
 # header Authorization por padrão. Repassa para o PHP conseguir ler.
