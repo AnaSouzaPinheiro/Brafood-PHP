@@ -128,10 +128,13 @@ class QuadroModel
     public function listReceitas(int $idUser, int $idQuadro): array
     {
         $stmt = $this->conn->prepare("
-            SELECT r.*, c.nome AS categoria
+            SELECT r.*, c.nome AS categoria,
+                   GROUP_CONCAT(DISTINCT c.nome ORDER BY c.nome SEPARATOR ',') AS categorias,
+                   f.status, f.nota
             FROM quadro_receitas qr
             JOIN quadros q ON q.id = qr.id_quadro AND q.id_usuario = :idUser
             JOIN receitas r ON r.id = qr.id_receita
+            LEFT JOIN favoritos f ON f.id_receita = r.id AND f.id_usuario = :idUser2
             LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
             LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
             LEFT JOIN categorias c ON c.id = s.id_categoria
@@ -139,7 +142,7 @@ class QuadroModel
             GROUP BY r.id
             ORDER BY MAX(qr.adicionado_em) DESC
         ");
-        $stmt->execute([':idUser' => $idUser, ':idQuadro' => $idQuadro]);
+        $stmt->execute([':idUser' => $idUser, ':idUser2' => $idUser, ':idQuadro' => $idQuadro]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

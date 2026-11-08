@@ -52,7 +52,9 @@ class FavoritoModel
     public function listByUser($idUser)
     {
         $sql = "SELECT r.*,
-                    c.nome AS categoria
+                    c.nome AS categoria,
+                    GROUP_CONCAT(DISTINCT c.nome ORDER BY c.nome SEPARATOR ',') AS categorias,
+                    f.status, f.nota
                 FROM favoritos f
                 LEFT JOIN receitas r ON r.id = f.id_receita
                 LEFT JOIN usuarios u ON r.id_usuario = u.id
@@ -65,6 +67,38 @@ class FavoritoModel
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':idUser' => $idUser]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Status ("quero fazer"/"ja fiz") e nota pessoal; null se nao favoritada. */
+    public function getExtras($idUser, $idReceita): ?array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT status, nota FROM favoritos
+            WHERE id_usuario = :idUser AND id_receita = :idReceita
+        ");
+        $stmt->execute([':idUser' => $idUser, ':idReceita' => $idReceita]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /** Atualiza só as colunas informadas ('status' e/ou 'nota'). */
+    public function updateExtras($idUser, $idReceita, array $dados): void
+    {
+        $sets = [];
+        $params = [':idUser' => $idUser, ':idReceita' => $idReceita];
+        foreach (['status', 'nota'] as $col) {
+            if (array_key_exists($col, $dados)) {
+                $sets[] = "$col = :$col";
+                $params[":$col"] = $dados[$col];
+            }
+        }
+        if (!$sets) return;
+
+        $stmt = $this->conn->prepare(
+            "UPDATE favoritos SET " . implode(', ', $sets) .
+            " WHERE id_usuario = :idUser AND id_receita = :idReceita"
+        );
+        $stmt->execute($params);
     }
 
     public function addWithIncrement($idUser, $idReceita): array

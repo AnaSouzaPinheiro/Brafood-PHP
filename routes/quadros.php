@@ -40,11 +40,17 @@ switch ($method) {
         break;
 
     case 'POST':
-        if (isset($data['idQuadro'], $data['idReceita'])) {
-            responder($controller->adicionarReceita($idUser, (int) $data['idQuadro'], (int) $data['idReceita']));
+        $ids = is_array($data['idsReceitas'] ?? null) ? $data['idsReceitas'] : [];
+        if (isset($data['idReceita'])) $ids[] = $data['idReceita'];
+
+        if (isset($data['idQuadro'])) {
+            if (!$ids) {
+                responder(['success' => false, 'error' => 'Dados incompletos']);
+                break;
+            }
+            responder($controller->adicionarVarias($idUser, (int) $data['idQuadro'], $ids));
         } else {
-            $idReceita = isset($data['idReceita']) ? (int) $data['idReceita'] : null;
-            responder($controller->criar($idUser, $data['nome'] ?? '', $data['descricao'] ?? null, $idReceita));
+            responder($controller->criar($idUser, $data['nome'] ?? '', $data['descricao'] ?? null, $ids));
         }
         break;
 
@@ -57,7 +63,9 @@ switch ($method) {
         break;
 
     case 'DELETE':
-        if (isset($data['idQuadro'], $data['idReceita'])) {
+        if (isset($data['idQuadro']) && is_array($data['idsReceitas'] ?? null)) {
+            responder($controller->removerVarias($idUser, (int) $data['idQuadro'], $data['idsReceitas']));
+        } elseif (isset($data['idQuadro'], $data['idReceita'])) {
             responder($controller->removerReceita($idUser, (int) $data['idQuadro'], (int) $data['idReceita']));
         } elseif (isset($data['id'])) {
             responder($controller->excluir($idUser, (int) $data['id']), 404);

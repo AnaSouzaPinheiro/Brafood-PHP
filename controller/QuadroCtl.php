@@ -44,8 +44,11 @@ class QuadroCtl
 
     public function estadoDaReceita(int $idUser, int $idReceita): array
     {
+        $extras = $this->favoritoModel->getExtras($idUser, $idReceita);
         return [
-            'favorito' => $this->favoritoModel->isFavorite($idUser, $idReceita),
+            'favorito' => $extras !== null,
+            'status'   => $extras['status'] ?? null,
+            'nota'     => $extras['nota'] ?? null,
             'quadros'  => $this->model->quadrosDaReceita($idUser, $idReceita),
         ];
     }
@@ -63,14 +66,20 @@ class QuadroCtl
         return [$nome, $descricao === '' ? null : $descricao];
     }
 
-    public function criar(int $idUser, $nome, $descricao, ?int $idReceita = null): array
+    /**
+     * Cria o quadro. $idsReceitas permite já começar com receitas
+     * (ex.: as salvas de uma categoria, escolhidas no seletor).
+     */
+    public function criar(int $idUser, $nome, $descricao, array $idsReceitas = []): array
     {
         $v = $this->validar($nome, $descricao);
         if (is_string($v)) return ['success' => false, 'error' => $v];
 
         try {
             $id = $this->model->create($idUser, $v[0], $v[1]);
-            if ($idReceita) $this->adicionarReceita($idUser, $id, $idReceita);
+            foreach ($this->normalizarIds($idsReceitas) as $idReceita) {
+                $this->adicionarReceita($idUser, $id, $idReceita);
+            }
 
             Logger::info('quadro', 'Quadro criado', ['usuario_id' => $idUser, 'quadro_id' => $id]);
             return ['success' => true, 'id' => $id];
@@ -120,9 +129,37 @@ class QuadroCtl
         }
     }
 
+    /** Adiciona várias receitas de uma vez (seletor de receitas salvas). */
+    public function adicionarVarias(int $idUser, int $idQuadro, array $idsReceitas): array
+    {
+        if (!$this->model->find($idUser, $idQuadro)) return ['success' => false, 'error' => 'Quadro não encontrado'];
+
+        foreach ($this->normalizarIds($idsReceitas) as $idReceita) {
+            $res = $this->adicionarReceita($idUser, $idQuadro, $idReceita);
+            if (!$res['success']) return $res;
+        }
+        return ['success' => true];
+    }
+
+    /** Inteiros positivos, sem repetição, no máximo 200 por vez. */
+    private function normalizarIds(array $ids): array
+    {
+        $ids = array_filter(array_map('intval', $ids), fn($i) => $i > 0);
+        return array_slice(array_values(array_unique($ids)), 0, 200);
+    }
+
     public function removerReceita(int $idUser, int $idQuadro, int $idReceita): array
     {
         $this->model->removeReceita($idUser, $idQuadro, $idReceita);
+        return ['success' => true];
+    }
+
+    /** Remove várias receitas do quadro (seleção em massa / mover). */
+    public function removerVarias(int $idUser, int $idQuadro, array $idsReceitas): array
+    {
+        foreach ($this->normalizarIds($idsReceitas) as $idReceita) {
+            $this->model->removeReceita($idUser, $idQuadro, $idReceita);
+        }
         return ['success' => true];
     }
 }
