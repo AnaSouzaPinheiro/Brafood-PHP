@@ -109,6 +109,13 @@ class FavoritoModel
 
             $this->remove($idUser, $idReceita);
 
+            // Desfavoritar tira a receita de todos os quadros do usuário
+            $this->conn->prepare("
+                DELETE qr FROM quadro_receitas qr
+                JOIN quadros q ON q.id = qr.id_quadro
+                WHERE qr.id_receita = :idReceita AND q.id_usuario = :idUser
+            ")->execute([':idReceita' => $idReceita, ':idUser' => $idUser]);
+
             $stmt = $this->conn->prepare("
             UPDATE receitas
             SET qtd_fav = GREATEST(qtd_fav - 1, 0)
