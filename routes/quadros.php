@@ -23,7 +23,17 @@ function responder(array $res, int $erro = 400): void
 
 switch ($method) {
     case 'GET':
-        if (isset($_GET['idReceita'])) {
+        if (isset($_GET['compras'])) {
+            // Lista de compras: ?compras={idQuadro}&ids=1,2,3
+            $ids = array_filter(explode(',', (string) ($_GET['ids'] ?? '')));
+            $res = $controller->listaDeCompras($idUser, (int) $_GET['compras'], $ids);
+            if ($res === null) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Quadro não encontrado']);
+                break;
+            }
+            echo json_encode($res);
+        } elseif (isset($_GET['idReceita'])) {
             // Em quais quadros esta receita está (menu "Salvar em…")
             echo json_encode($controller->estadoDaReceita($idUser, (int) $_GET['idReceita']));
         } elseif (isset($_GET['id'])) {
@@ -55,6 +65,21 @@ switch ($method) {
         break;
 
     case 'PUT':
+        // Ordem dos quadros: { ordem: [ids] }
+        if (is_array($data['ordem'] ?? null)) {
+            responder($controller->reordenarQuadros($idUser, $data['ordem']));
+            break;
+        }
+        // Ordem das receitas: { idQuadro, ordemReceitas: [ids] }
+        if (isset($data['idQuadro']) && is_array($data['ordemReceitas'] ?? null)) {
+            responder($controller->reordenarReceitas($idUser, (int) $data['idQuadro'], $data['ordemReceitas']), 404);
+            break;
+        }
+        // Compartilhar: { id, publico: true|false }
+        if (isset($data['id']) && array_key_exists('publico', $data)) {
+            responder($controller->definirPublico($idUser, (int) $data['id'], (bool) $data['publico']), 404);
+            break;
+        }
         if (!isset($data['id'])) {
             responder(['success' => false, 'error' => 'Dados incompletos']);
             break;

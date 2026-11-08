@@ -42,6 +42,61 @@ class QuadroCtl
         return ['quadro' => $quadro, 'receitas' => $this->model->listReceitas($idUser, $idQuadro)];
     }
 
+    // ---- Fase 3: compartilhar, ordenar, lista de compras -------------------
+
+    public function definirPublico(int $idUser, int $idQuadro, bool $publico): array
+    {
+        $token = $this->model->setPublico($idUser, $idQuadro, $publico);
+        if ($token === null) return ['success' => false, 'error' => 'Quadro não encontrado'];
+
+        Logger::info('quadro', $publico ? 'Quadro publicado' : 'Quadro tornado privado', [
+            'usuario_id' => $idUser, 'quadro_id' => $idQuadro,
+        ]);
+        return ['success' => true, 'publico' => $publico, 'token' => $token];
+    }
+
+    /** Visão pública (sem login) de um quadro compartilhado. */
+    public function publico(string $token): ?array
+    {
+        if (!preg_match('/^[a-f0-9]{16}$/', $token)) return null;
+        $q = $this->model->findPublico($token);
+        if (!$q) return null;
+
+        return [
+            'quadro' => ['nome' => $q['nome'], 'descricao' => $q['descricao']],
+            'autor'  => [
+                'nome'      => trim($q['autor_nome'] . ' ' . ($q['autor_sobrenome'] ?? '')),
+                'apelido'   => $q['autor_apelido'],
+                'foto'      => $q['autor_foto'],
+            ],
+            'receitas' => $this->model->listReceitasPublicas($q['id']),
+        ];
+    }
+
+    public function publicosDoUsuario(int $idUser): array
+    {
+        return $this->model->listPublicosDoUsuario($idUser);
+    }
+
+    public function reordenarQuadros(int $idUser, array $ids): array
+    {
+        $this->model->reordenarQuadros($idUser, $this->normalizarIds($ids));
+        return ['success' => true];
+    }
+
+    public function reordenarReceitas(int $idUser, int $idQuadro, array $ids): array
+    {
+        if (!$this->model->find($idUser, $idQuadro)) return ['success' => false, 'error' => 'Quadro não encontrado'];
+        $this->model->reordenarReceitas($idQuadro, $this->normalizarIds($ids));
+        return ['success' => true];
+    }
+
+    public function listaDeCompras(int $idUser, int $idQuadro, array $idsReceitas): ?array
+    {
+        if (!$this->model->find($idUser, $idQuadro)) return null;
+        return $this->model->ingredientes($idQuadro, $this->normalizarIds($idsReceitas));
+    }
+
     public function estadoDaReceita(int $idUser, int $idReceita): array
     {
         $extras = $this->favoritoModel->getExtras($idUser, $idReceita);

@@ -22,28 +22,34 @@ class QuadroModel
     public function listByUser(int $idUser): array
     {
         $stmt = $this->conn->prepare("
-            SELECT q.id, q.nome, q.descricao, COUNT(qr.id_receita) AS total
+            SELECT q.id, q.nome, q.descricao, q.publico, q.token_publico,
+                   COUNT(qr.id_receita) AS total
             FROM quadros q
             LEFT JOIN quadro_receitas qr ON qr.id_quadro = q.id
             WHERE q.id_usuario = :idUser
-            GROUP BY q.id, q.nome, q.descricao
+            GROUP BY q.id, q.nome, q.descricao, q.publico, q.token_publico
             ORDER BY q.ordem, q.criado_em DESC
         ");
         $stmt->execute([':idUser' => $idUser]);
-        $quadros = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->comCapas($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
 
+    /** Normaliza tipos e adiciona até 4 capas (na ordem do quadro) a cada quadro. */
+    private function comCapas(array $quadros): array
+    {
         $capas = $this->conn->prepare("
             SELECT r.imagem1
             FROM quadro_receitas qr
             JOIN receitas r ON r.id = qr.id_receita
             WHERE qr.id_quadro = :id AND r.imagem1 IS NOT NULL AND r.imagem1 <> ''
-            ORDER BY qr.adicionado_em DESC
+            ORDER BY qr.ordem, qr.adicionado_em DESC
             LIMIT 4
         ");
 
         foreach ($quadros as &$q) {
             $q['id'] = (int) $q['id'];
             $q['total'] = (int) $q['total'];
+            if (array_key_exists('publico', $q)) $q['publico'] = (bool) $q['publico'];
             $capas->execute([':id' => $q['id']]);
             $q['capas'] = $capas->fetchAll(PDO::FETCH_COLUMN);
         }
@@ -74,14 +80,163 @@ class QuadroModel
     public function find(int $idUser, int $idQuadro): ?array
     {
         $stmt = $this->conn->prepare("
-            SELECT id, nome, descricao FROM quadros
+            SELECT id, nome, descricao, publico, token_publico FROM quadros
             WHERE id = :id AND id_usuario = :idUser
         ");
         $stmt->execute([':id' => $idQuadro, ':idUser' => $idUser]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) return null;
         $row['id'] = (int) $row['id'];
+        $row['publico'] = (bool) $row['publico'];
         return $row;
+    }
+
+    // ---- compartilhar ------------------------------------------------------
+
+    /** Liga/desliga o link público. O token é criado uma vez e mantido. */
+    public function setPublico(int $idUser, int $idQuadro, bool $publico): ?string
+    {
+        $quadro = $this->find($idUser, $idQuadro);
+        if (!$quadro) return null;
+
+        $token = $quadro['token_publico'] ?: bin2hex(random_bytes(8));
+        $stmt = $this->conn->prepare("
+            UPDATE quadros SET publico = :publico, token_publico = :token
+            WHERE id = :id AND id_usuario = :idUser
+        ");
+        $stmt->execute([
+            ':publico' => $publico ? 1 : 0, ':token' => $token,
+            ':id' => $idQuadro, ':idUser' => $idUser,
+        ]);
+        return $token;
+    }
+
+    /** Quadro público pelo token, com o autor (null se não existe ou é privado). */
+    public function findPublico(string $token): ?array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT q.id, q.nome, q.descricao,
+                   u.nome AS autor_nome, u.sobrenome AS autor_sobrenome,
+                   u.apelido AS autor_apelido, u.foto_perfil AS autor_foto
+            FROM quadros q
+            JOIN usuarios u ON u.id = q.id_usuario
+            WHERE q.token_publico = :token AND q.publico = 1
+        ");
+        $stmt->execute([':token' => $token]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return null;
+        $row['id'] = (int) $row['id'];
+        return $row;
+    }
+
+    /** Receitas de um quadro público — sem status/nota (são pessoais). */
+    public function listReceitasPublicas(int $idQuadro): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT r.*, c.nome AS categoria
+            FROM quadro_receitas qr
+            JOIN receitas r ON r.id = qr.id_receita
+            LEFT JOIN receita_subcategoria rs ON rs.id_receita = r.id
+            LEFT JOIN subcategorias s ON s.id = rs.id_subcategoria
+            LEFT JOIN categorias c ON c.id = s.id_categoria
+            WHERE qr.id_quadro = :idQuadro
+            GROUP BY r.id
+            ORDER BY MIN(qr.ordem), MAX(qr.adicionado_em) DESC
+        ");
+        $stmt->execute([':idQuadro' => $idQuadro]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Quadros públicos de um usuário (para o perfil público). */
+    public function listPublicosDoUsuario(int $idUser): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT q.id, q.nome, q.descricao, q.token_publico, COUNT(qr.id_receita) AS total
+            FROM quadros q
+            LEFT JOIN quadro_receitas qr ON qr.id_quadro = q.id
+            WHERE q.id_usuario = :idUser AND q.publico = 1
+            GROUP BY q.id, q.nome, q.descricao, q.token_publico
+            HAVING total > 0
+            ORDER BY q.ordem, q.criado_em DESC
+        ");
+        $stmt->execute([':idUser' => $idUser]);
+        return $this->comCapas($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    // ---- ordenação ---------------------------------------------------------
+
+    /** Grava a ordem dos quadros do usuário ($ids na ordem desejada). */
+    public function reordenarQuadros(int $idUser, array $ids): void
+    {
+        $stmt = $this->conn->prepare("
+            UPDATE quadros SET ordem = :ordem WHERE id = :id AND id_usuario = :idUser
+        ");
+        $this->conn->beginTransaction();
+        try {
+            foreach (array_values($ids) as $i => $id) {
+                $stmt->execute([':ordem' => $i + 1, ':id' => $id, ':idUser' => $idUser]);
+            }
+            $this->conn->commit();
+        } catch (\Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
+
+    /** Grava a ordem das receitas dentro do quadro. Receitas novas (ordem 0) entram no topo. */
+    public function reordenarReceitas(int $idQuadro, array $ids): void
+    {
+        $stmt = $this->conn->prepare("
+            UPDATE quadro_receitas SET ordem = :ordem
+            WHERE id_quadro = :idQuadro AND id_receita = :idReceita
+        ");
+        $this->conn->beginTransaction();
+        try {
+            foreach (array_values($ids) as $i => $id) {
+                $stmt->execute([':ordem' => $i + 1, ':idQuadro' => $idQuadro, ':idReceita' => $id]);
+            }
+            $this->conn->commit();
+        } catch (\Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
+
+    // ---- lista de compras --------------------------------------------------
+
+    /**
+     * Ingredientes das receitas escolhidas de um quadro, agrupados por receita
+     * (e, dentro dela, pelos grupos da própria receita: "Massa", "Cobertura"…).
+     * Só receitas que estão de fato no quadro entram.
+     */
+    public function ingredientes(int $idQuadro, array $idsReceitas): array
+    {
+        if (!$idsReceitas) return [];
+        $marc = implode(',', array_fill(0, count($idsReceitas), '?'));
+
+        $stmt = $this->conn->prepare("
+            SELECT r.id, r.titulo, ii.titulo AS grupo, i.descricao
+            FROM quadro_receitas qr
+            JOIN receitas r ON r.id = qr.id_receita
+            LEFT JOIN itens_ingredientes ii ON ii.id_receita = r.id
+            LEFT JOIN ingredientes i ON i.id_item = ii.id_item
+            WHERE qr.id_quadro = ? AND r.id IN ($marc)
+            ORDER BY qr.ordem, qr.adicionado_em DESC, ii.id_item, i.id_ingrediente
+        ");
+        $stmt->execute(array_merge([$idQuadro], array_values($idsReceitas)));
+
+        $receitas = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $id = (int) $row['id'];
+            $receitas[$id] ??= ['id' => $id, 'titulo' => $row['titulo'], 'grupos' => []];
+            if ($row['descricao'] === null) continue;
+            $grupo = (string) ($row['grupo'] ?? '');
+            $receitas[$id]['grupos'][$grupo] ??= ['titulo' => $grupo, 'itens' => []];
+            $receitas[$id]['grupos'][$grupo]['itens'][] = $row['descricao'];
+        }
+
+        foreach ($receitas as &$r) $r['grupos'] = array_values($r['grupos']);
+        return array_values($receitas);
     }
 
     public function create(int $idUser, string $nome, ?string $descricao): int
@@ -140,7 +295,7 @@ class QuadroModel
             LEFT JOIN categorias c ON c.id = s.id_categoria
             WHERE qr.id_quadro = :idQuadro
             GROUP BY r.id
-            ORDER BY MAX(qr.adicionado_em) DESC
+            ORDER BY MIN(qr.ordem), MAX(qr.adicionado_em) DESC
         ");
         $stmt->execute([':idUser' => $idUser, ':idUser2' => $idUser, ':idQuadro' => $idQuadro]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
