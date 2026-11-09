@@ -48,12 +48,7 @@ class LoginModel
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($senha, $user['senha'])) {
-            $token = bin2hex(random_bytes(32));
-
-            $stmtToken = $this->conn->prepare("UPDATE usuarios SET token = :token WHERE id = :id");
-            $stmtToken->bindParam(':token', $token);
-            $stmtToken->bindParam(':id', $user['id']);
-            $stmtToken->execute();
+            $token = $this->criarSessao((int) $user['id']);
 
             return [
                 'success' => true,
@@ -73,11 +68,38 @@ class LoginModel
         return ['success' => false, 'mensagem' => 'Email ou senha incorretos'];
     }
 
+    /**
+     * Cria um token novo para ESTE aparelho. Os outros aparelhos continuam
+     * logados (antes, cada login substituía o token único do usuário).
+     */
+    private function criarSessao(int $idUsuario): string
+    {
+        $token = bin2hex(random_bytes(32));
+
+        try {
+            $this->conn->prepare('INSERT INTO sessoes (id_usuario, token) VALUES (?, ?)')
+                ->execute([$idUsuario, $token]);
+
+            // Limpa sessões esquecidas (sem uso há 6 meses)
+            $this->conn->exec('DELETE FROM sessoes WHERE ultimo_uso < NOW() - INTERVAL 180 DAY');
+        } catch (\PDOException $e) {
+            // Tabela sessoes ainda não existe: modo antigo (token único)
+            $this->conn->prepare('UPDATE usuarios SET token = ? WHERE id = ?')
+                ->execute([$token, $idUsuario]);
+        }
+
+        return $token;
+    }
+
+    /** Sai só deste aparelho. */
     public function logout($token)
     {
-        $stmt = $this->conn->prepare("UPDATE usuarios SET token = NULL WHERE token = :token");
-        $stmt->bindParam(':token', $token);
-        $stmt->execute();
+        try {
+            $this->conn->prepare('DELETE FROM sessoes WHERE token = ?')->execute([$token]);
+        } catch (\PDOException $e) {
+            // sem tabela sessoes: nada a fazer aqui
+        }
+        $this->conn->prepare('UPDATE usuarios SET token = NULL WHERE token = ?')->execute([$token]);
 
         return ['success' => true];
     }

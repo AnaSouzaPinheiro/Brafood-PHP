@@ -6,7 +6,8 @@ use PDO;
 
 /**
  * Autenticação por token (Bearer). O token é gerado no login e guardado
- * na coluna `usuarios.token`; o cliente manda de volta em todo request
+ * na tabela `sessoes` (um token por aparelho; antes era um só, na coluna
+ * `usuarios.token`, e entrar num aparelho derrubava o outro). O cliente manda de volta em todo request
  * autenticado via header `Authorization: Bearer <token>`.
  */
 class Auth
@@ -30,14 +31,37 @@ class Auth
         }
 
         $conn = Database::getInstance()->getConnection();
-        $stmt = $conn->prepare(
-            'SELECT id, nome, apelido, email, genero, bio, foto_perfil, is_admin
-             FROM usuarios
-             WHERE token = :token',
-        );
-        $stmt->bindParam(':token', $token);
-        $stmt->execute();
+        $campos = 'u.id, u.nome, u.apelido, u.email, u.genero, u.bio, u.foto_perfil, u.is_admin';
 
+        // 1) Sessões por aparelho (tabela sessoes)
+        try {
+            $stmt = $conn->prepare(
+                "SELECT $campos, s.id AS sessao_id
+                 FROM sessoes s
+                 JOIN usuarios u ON u.id = s.id_usuario
+                 WHERE s.token = :token"
+            );
+            $stmt->execute([':token' => $token]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                // Marca o uso (no máximo 1x por dia, para não escrever a cada request)
+                $conn->prepare(
+                    'UPDATE sessoes SET ultimo_uso = NOW()
+                     WHERE id = ? AND ultimo_uso < NOW() - INTERVAL 1 DAY'
+                )->execute([$user['sessao_id']]);
+                unset($user['sessao_id']);
+                return $user;
+            }
+        } catch (\PDOException $e) {
+            // Tabela ainda não criada (migration não rodou): segue para o modo antigo
+        }
+
+        // 2) Modo antigo: token único em usuarios.token (sessões de antes da migration)
+        $stmt = $conn->prepare(
+            "SELECT $campos FROM usuarios u WHERE u.token = :token"
+        );
+        $stmt->execute([':token' => $token]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $user ?: null;
