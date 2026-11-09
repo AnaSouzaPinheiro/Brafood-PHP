@@ -56,6 +56,27 @@ class AdminCategoriaModel
         return $row ?: null;
     }
 
+    /** Já existe categoria com este nome (ignorando maiúsculas e espaços)? */
+    public function categoriaNomeExiste(string $nome, ?int $ignorarId = null): bool
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT 1 FROM categorias WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?)) AND id <> ? LIMIT 1"
+        );
+        $stmt->execute([$nome, $ignorarId ?? 0]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /** Já existe subcategoria com este nome na mesma categoria? */
+    public function subcategoriaNomeExiste(string $nome, int $idCategoria, ?int $ignorarId = null): bool
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT 1 FROM subcategorias
+             WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?)) AND id_categoria = ? AND id <> ? LIMIT 1"
+        );
+        $stmt->execute([$nome, $idCategoria, $ignorarId ?? 0]);
+        return (bool) $stmt->fetchColumn();
+    }
+
     public function criarCategoria(array $data): int
     {
         $stmt = $this->conn->prepare(

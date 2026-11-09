@@ -52,8 +52,8 @@ try {
 
         // DELETE — admin: remove destaque
         case 'DELETE':
-            $model->removerDestaque();
-            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
+            $novo = $model->removerDestaque();
+            echo json_encode(['success' => true, 'destaque' => $novo], JSON_UNESCAPED_UNICODE);
             break;
 
         default:

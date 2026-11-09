@@ -57,6 +57,13 @@ class AdminCategoriaCtl
             return ['mensagem' => 'O campo "nome" é obrigatório.'];
         }
 
+        $data['nome'] = trim($data['nome']);
+
+        if ($this->model->categoriaNomeExiste($data['nome'])) {
+            http_response_code(409);
+            return ['mensagem' => 'Já existe uma categoria com esse nome.'];
+        }
+
         $id = $this->model->criarCategoria($data);
         http_response_code(201);
         return ['mensagem' => 'Categoria criada com sucesso.', 'id' => $id];
@@ -69,6 +76,13 @@ class AdminCategoriaCtl
         if (empty($data['nome'])) {
             http_response_code(422);
             return ['mensagem' => 'O campo "nome" é obrigatório.'];
+        }
+
+        $data['nome'] = trim($data['nome']);
+
+        if ($this->model->categoriaNomeExiste($data['nome'], $id)) {
+            http_response_code(409);
+            return ['mensagem' => 'Já existe uma categoria com esse nome.'];
         }
 
         $ok = $this->model->atualizarCategoria($id, $data);
@@ -108,6 +122,13 @@ class AdminCategoriaCtl
             return ['mensagem' => 'Os campos "nome" e "id_categoria" são obrigatórios.'];
         }
 
+        $data['nome'] = trim($data['nome']);
+
+        if ($this->model->subcategoriaNomeExiste($data['nome'], (int) $data['id_categoria'])) {
+            http_response_code(409);
+            return ['mensagem' => 'Já existe uma subcategoria com esse nome nesta categoria.'];
+        }
+
         $id = $this->model->criarSubcategoria($data['nome'], (int) $data['id_categoria']);
         http_response_code(201);
         return ['mensagem' => 'Subcategoria criada com sucesso.', 'id' => $id];
@@ -120,6 +141,13 @@ class AdminCategoriaCtl
         if (empty($data['nome']) || empty($data['id_categoria'])) {
             http_response_code(422);
             return ['mensagem' => 'Os campos "nome" e "id_categoria" são obrigatórios.'];
+        }
+
+        $data['nome'] = trim($data['nome']);
+
+        if ($this->model->subcategoriaNomeExiste($data['nome'], (int) $data['id_categoria'], $id)) {
+            http_response_code(409);
+            return ['mensagem' => 'Já existe uma subcategoria com esse nome nesta categoria.'];
         }
 
         $ok = $this->model->atualizarSubcategoria($id, $data['nome'], (int) $data['id_categoria']);

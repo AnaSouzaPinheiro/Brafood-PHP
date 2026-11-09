@@ -68,6 +68,16 @@ class AdminSecaoModel
         return $row ?: null;
     }
 
+    /** Já existe seção com este título (ignorando maiúsculas e espaços)? */
+    public function tituloExiste(string $titulo, ?int $ignorarId = null): bool
+    {
+        $stmt = $this->conn->prepare(
+            "SELECT 1 FROM secoes_carrossel WHERE LOWER(TRIM(titulo)) = LOWER(TRIM(?)) AND id <> ? LIMIT 1"
+        );
+        $stmt->execute([$titulo, $ignorarId ?? 0]);
+        return (bool) $stmt->fetchColumn();
+    }
+
     public function criarSecao(array $data): int
     {
         $stmt = $this->conn->prepare(

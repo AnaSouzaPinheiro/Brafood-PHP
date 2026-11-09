@@ -52,6 +52,13 @@ class AdminSecaoCtl
             return ['mensagem' => 'O campo "titulo" é obrigatório.'];
         }
 
+        $data['titulo'] = trim($data['titulo']);
+
+        if ($this->model->tituloExiste($data['titulo'])) {
+            http_response_code(409);
+            return ['mensagem' => 'Já existe uma seção com esse título.'];
+        }
+
         $id = $this->model->criarSecao($data);
         http_response_code(201);
         return ['mensagem' => 'Seção criada com sucesso.', 'id' => $id];
@@ -64,6 +71,13 @@ class AdminSecaoCtl
         if (empty($data['titulo'])) {
             http_response_code(422);
             return ['mensagem' => 'O campo "titulo" é obrigatório.'];
+        }
+
+        $data['titulo'] = trim($data['titulo']);
+
+        if ($this->model->tituloExiste($data['titulo'], $id)) {
+            http_response_code(409);
+            return ['mensagem' => 'Já existe uma seção com esse título.'];
         }
 
         $ok = $this->model->atualizarSecao($id, $data);

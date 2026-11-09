@@ -28,11 +28,12 @@ class DestaqueModel
     {
         $semana = HomeRotacaoService::semanaAtual();
 
-        $stmt = $this->conn->prepare('SELECT receita_id FROM destaque_historico WHERE semana = ?');
+        $stmt = $this->conn->prepare('SELECT receita_id, manual FROM destaque_historico WHERE semana = ?');
         $stmt->execute([$semana]);
-        $idReceita = $stmt->fetchColumn();
+        $linha = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($idReceita && ($receita = $this->buscarReceita((int) $idReceita))) {
+        if ($linha && ($receita = $this->buscarReceita((int) $linha['receita_id']))) {
+            $receita['manual'] = (int) $linha['manual'] === 1;
             return $receita;
         }
 
@@ -49,7 +50,9 @@ class DestaqueModel
         }
 
         $this->registrarSemana($semana, $idReceita, (bool) $manual);
-        return $this->buscarReceita($idReceita);
+        $receita = $this->buscarReceita($idReceita);
+        if ($receita) $receita['manual'] = (bool) $manual;
+        return $receita;
     }
 
     /**
@@ -57,13 +60,14 @@ class DestaqueModel
      * com um sorteio leve (semente da semana) para variar entre empates.
      * Ignora receitas destacadas nas últimas semanas.
      */
-    private function escolherAutomaticamente(): ?int
+    private function escolherAutomaticamente(array $excluir = []): ?int
     {
         $stmt = $this->conn->prepare(
             'SELECT receita_id FROM destaque_historico ORDER BY semana DESC LIMIT ' . self::SEMANAS_SEM_REPETIR
         );
         $stmt->execute();
         $recentes = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+        $recentes = array_values(array_unique(array_merge($recentes, array_map('intval', $excluir))));
 
         $notIn = $recentes ? 'WHERE id NOT IN (' . implode(',', $recentes) . ')' : '';
 
@@ -148,13 +152,33 @@ class DestaqueModel
         return true;
     }
 
-    /** Admin desfaz a escolha da semana: volta para a escolha automática */
-    public function removerDestaque(): bool
+    /**
+     * Admin desfaz a escolha da semana: volta para a escolha automática.
+     * A receita que estava em destaque fica de fora (senão, se ela for a de
+     * maior pontuação, o automático escolhe ela de novo e parece que nada
+     * mudou). A nova escolha já é gravada e devolvida.
+     */
+    public function removerDestaque(): ?array
     {
+        $semana = HomeRotacaoService::semanaAtual();
+
+        $stmt = $this->conn->prepare('SELECT receita_id FROM destaque_historico WHERE semana = ?');
+        $stmt->execute([$semana]);
+        $atual = $stmt->fetchColumn()
+            ?: $this->conn->query('SELECT id FROM receitas WHERE destaque = 1 LIMIT 1')->fetchColumn();
+
         $stmt = $this->conn->prepare('DELETE FROM destaque_historico WHERE semana = ?');
-        $stmt->execute([HomeRotacaoService::semanaAtual()]);
+        $stmt->execute([$semana]);
         $this->conn->exec('UPDATE receitas SET destaque = 0, destaque_desde = NULL WHERE destaque = 1');
-        return true;
+
+        $novo = $this->escolherAutomaticamente($atual ? [(int) $atual] : []);
+        if (!$novo) {
+            return null;
+        }
+        $this->registrarSemana($semana, $novo, false);
+        $receita = $this->buscarReceita($novo);
+        if ($receita) $receita['manual'] = false;
+        return $receita;
     }
 
     /** Lista receitas para o seletor do admin (id + titulo + imagem) */
