@@ -33,7 +33,7 @@ class ReceitaModel
                 r.qtd_avaliacoes,
                 r.data_criacao,
                 r.imagem1,
-                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                u.nome AS autor,
                 u.apelido AS autor_apelido,
                 c.nome AS categoria
             FROM receitas r
@@ -68,7 +68,7 @@ class ReceitaModel
                 r.qtd_avaliacoes,
                 r.data_criacao,
                 r.imagem1,
-                CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                u.nome AS autor,
                 u.apelido AS autor_apelido,
                 c.nome AS categoria
             FROM receitas r
@@ -99,7 +99,7 @@ class ReceitaModel
             r.qtd_fav,
             r.data_criacao,
             r.imagem1,
-            CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+            u.nome AS autor,
                 u.apelido AS autor_apelido,
             GROUP_CONCAT(DISTINCT c.nome SEPARATOR ', ') AS categoria
         FROM receitas r
@@ -123,7 +123,7 @@ class ReceitaModel
         // Retorna IDs de categoria e subcategoria para que o Angular
         // possa pre-selecionar os dropdowns por valor, nao por nome.
         $sql = "SELECT r.*,
-                       CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor,
+                       u.nome AS autor,
                 u.apelido AS autor_apelido,
                        u.foto_perfil,
                        u.bio,
@@ -252,7 +252,7 @@ class ReceitaModel
                     r.qtd_avaliacoes,
                     r.data_criacao,
                     r.imagem1,
-                    CONCAT(u.nome, ' ', u.sobrenome) AS autor,
+                    u.nome AS autor,
                 u.apelido AS autor_apelido,
                     c.nome AS categoria,
                     s.id   AS sub_id,

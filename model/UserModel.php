@@ -17,7 +17,7 @@ class UserModel
     public function buscarUserPorId($id)
     {
         // Dados básicos do usuário
-        $sql = "SELECT id, nome, sobrenome, apelido, email, genero, bio, foto_perfil, is_admin
+        $sql = "SELECT id, nome, apelido, email, genero, bio, foto_perfil, is_admin
                 FROM usuarios
                 WHERE id = :id";
 
@@ -32,11 +32,10 @@ class UserModel
         return $usuario;
     }
 
-    public function editarUsuario ($id, $nome, $sobrenome, $apelido, $email, $genero, $bio, $foto_perfil) 
+    public function editarUsuario ($id, $nome, $apelido, $email, $genero, $bio, $foto_perfil) 
     {
         $sql = 'UPDATE usuarios
                 SET nome = :nome,
-                    sobrenome = :sobrenome,
                     apelido = :apelido,
                     email = :email,
                     genero = :genero,
@@ -48,7 +47,6 @@ class UserModel
 
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->bindParam(':nome', $nome);
-        $stmt->bindParam(':sobrenome', $sobrenome);
         $stmt->bindParam(':apelido', $apelido);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':genero', $genero);

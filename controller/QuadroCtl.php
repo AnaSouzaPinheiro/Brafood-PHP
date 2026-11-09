@@ -65,7 +65,7 @@ class QuadroCtl
         return [
             'quadro' => ['nome' => $q['nome'], 'descricao' => $q['descricao']],
             'autor'  => [
-                'nome'      => trim($q['autor_nome'] . ' ' . ($q['autor_sobrenome'] ?? '')),
+                'nome'      => $q['autor_nome'],
                 'apelido'   => $q['autor_apelido'],
                 'foto'      => $q['autor_foto'],
             ],

@@ -36,7 +36,6 @@ class UserCtl
             $this->model->editarUsuario(
                 $id,
                 $dados['nome']        ?? '',
-                $dados['sobrenome']   ?? '',
                 $apelido,
                 $dados['email']       ?? '',
                 $dados['genero']      ?? '',

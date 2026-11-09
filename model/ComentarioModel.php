@@ -34,16 +34,45 @@ class ComentarioModel
                     END AS nota,
                     c.data_criacao,
                     u.nome AS nome_usuario,
-                    u.foto_perfil
+                    u.apelido AS apelido_usuario,
+                    u.foto_perfil,
+                    0 AS so_nota
                 FROM comentarios c
                 JOIN usuarios u ON u.id = c.id_usuario
                 LEFT JOIN avaliacoes av
                     ON av.id_usuario = c.id_usuario AND av.id_receita = c.id_receita
                 WHERE c.id_receita = ?
-                ORDER BY c.data_criacao ASC";
+
+                UNION ALL
+
+                -- Quem só deu estrelas (sem texto) também aparece na lista.
+                -- id negativo: não é um comentário (não recebe resposta).
+                SELECT
+                    -av.id,
+                    av.id_receita,
+                    av.id_usuario,
+                    NULL,
+                    '',
+                    av.nota,
+                    av.criado_em,
+                    u.nome,
+                    u.apelido,
+                    u.foto_perfil,
+                    1
+                FROM avaliacoes av
+                JOIN usuarios u ON u.id = av.id_usuario
+                WHERE av.id_receita = ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM comentarios c
+                      WHERE c.id_receita = av.id_receita
+                        AND c.id_usuario = av.id_usuario
+                        AND c.id_comentario_pai IS NULL
+                  )
+
+                ORDER BY data_criacao ASC";
 
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$idReceita]);
+        $stmt->execute([$idReceita, $idReceita]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -105,10 +134,17 @@ class ComentarioModel
         return $ok;
     }
 
+    /** Troca o texto de um comentário (edição da avaliação). */
+    public function atualizarTexto(int $id, string $texto): bool
+    {
+        $stmt = $this->conn->prepare("UPDATE comentarios SET texto = ? WHERE id = ?");
+        return $stmt->execute([$texto, $id]);
+    }
+
     public function buscarPorId(int $id): ?array
     {
         $stmt = $this->conn->prepare(
-            "SELECT id, id_usuario FROM comentarios WHERE id = ?"
+            "SELECT id, id_usuario, id_comentario_pai FROM comentarios WHERE id = ?"
         );
         $stmt->execute([$id]);
 

@@ -116,7 +116,7 @@ class QuadroModel
     {
         $stmt = $this->conn->prepare("
             SELECT q.id, q.nome, q.descricao,
-                   u.nome AS autor_nome, u.sobrenome AS autor_sobrenome,
+                   u.nome AS autor_nome,
                    u.apelido AS autor_apelido, u.foto_perfil AS autor_foto
             FROM quadros q
             JOIN usuarios u ON u.id = q.id_usuario

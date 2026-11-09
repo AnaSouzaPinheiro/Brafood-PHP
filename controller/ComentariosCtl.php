@@ -56,6 +56,10 @@ class ComentariosCtl
      */
     public function store(array $data): array
     {
+        // Quem comenta é sempre o usuário do login (nunca o id do corpo)
+        $user = Auth::requireAuth();
+        $data['id_usuario'] = (int) $user['id'];
+
         if (empty($data['id_receita']) || empty($data['texto']) || empty($data['id_usuario'])) {
             Logger::warn('comentarios', 'Tentativa de comentário com dados inválidos', [
                 'usuario_id' => $data['id_usuario'] ?? '(ausente)',
@@ -116,6 +120,40 @@ class ComentariosCtl
                 'body'   => ['error' => 'Erro ao salvar comentário.'],
             ];
         }
+    }
+
+    /**
+     * Edita o texto do próprio comentário (avaliação com texto).
+     *
+     * @return array{status: int, body: array}
+     */
+    public function update(int $id, array $data): array
+    {
+        $user = Auth::requireAuth();
+
+        $texto = trim((string) ($data['texto'] ?? ''));
+        $tamanho = mb_strlen($texto);
+        if ($tamanho < 3 || $tamanho > 1000) {
+            return [
+                'status' => 400,
+                'body'   => ['error' => 'O texto deve ter entre 3 e 1000 caracteres.'],
+            ];
+        }
+
+        $comentario = $this->model->buscarPorId($id);
+        if (!$comentario) {
+            return ['status' => 404, 'body' => ['error' => 'Comentário não encontrado.']];
+        }
+
+        // Só o dono edita (admin pode excluir, mas não reescrever o texto dos outros)
+        if ((int) $comentario['id_usuario'] !== (int) $user['id']) {
+            return ['status' => 403, 'body' => ['error' => 'Você só pode editar o seu comentário.']];
+        }
+
+        $this->model->atualizarTexto($id, $texto);
+        Logger::info('comentarios', 'Comentário editado', ['comentario_id' => $id, 'usuario_id' => $user['id']]);
+
+        return ['status' => 200, 'body' => ['success' => true]];
     }
 
     /**

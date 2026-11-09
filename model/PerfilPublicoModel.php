@@ -26,7 +26,7 @@ class PerfilPublicoModel
     {
         // Dados do usuário
         $stmt = $this->conn->prepare(
-            'SELECT id, nome, sobrenome, apelido, bio, foto_perfil
+            'SELECT id, nome, apelido, bio, foto_perfil
              FROM usuarios WHERE id = ?'
         );
         $stmt->execute([$id]);

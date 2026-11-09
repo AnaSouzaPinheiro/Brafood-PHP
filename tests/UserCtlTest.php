@@ -53,7 +53,6 @@ class UserCtlTest extends TestCase
         $usuarioFake = [
             'id'        => 1,
             'nome'      => 'João',
-            'sobrenome' => 'Silva',
             'email'     => 'joao@example.com',
         ];
 
@@ -88,7 +87,6 @@ class UserCtlTest extends TestCase
         $dados = [
             'id'        => 1,
             'nome'      => 'João',
-            'sobrenome' => 'Silva',
             'apelido'   => 'jsilva',
             'email'     => 'joao@example.com',
             'genero'    => 'M',

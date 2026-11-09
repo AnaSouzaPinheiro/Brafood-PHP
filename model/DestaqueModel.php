@@ -129,7 +129,7 @@ class DestaqueModel
                 r.media_avaliacao,
                 r.qtd_avaliacoes,
                 r.destaque_desde,
-                CONCAT(u.nome, ' ', COALESCE(u.sobrenome, '')) AS autor,
+                u.nome AS autor,
                 c.nome AS categoria,
                 s.nome AS subcategoria
             FROM receitas r

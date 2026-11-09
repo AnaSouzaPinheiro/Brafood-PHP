@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/core.php';
 
+use App\Config\Auth;
 use App\Model\AvaliacaoModel;
 
 $model  = new AvaliacaoModel();
@@ -10,6 +11,13 @@ $body   = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $idUsuario = isset($_GET['id_usuario']) ? (int) $_GET['id_usuario'] : ((int) ($body['id_usuario'] ?? 0));
 $idReceita = isset($_GET['id_receita']) ? (int) $_GET['id_receita'] : ((int) ($body['id_receita'] ?? 0));
+
+// Salvar ou remover nota: sempre em nome de quem está logado (o id enviado
+// no pedido é ignorado, senão daria para avaliar no lugar de outra pessoa)
+if ($method === 'POST' || $method === 'DELETE') {
+    $usuario   = Auth::requireAuth();
+    $idUsuario = (int) $usuario['id'];
+}
 
 try {
     switch ($method) {

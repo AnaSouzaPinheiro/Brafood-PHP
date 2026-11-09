@@ -42,7 +42,7 @@ class LoginModel
 
     public function login($email, $senha)
     {
-        $stmt = $this->conn->prepare("SELECT id, nome, sobrenome, apelido, email, genero, bio, foto_perfil, is_admin, senha FROM usuarios WHERE email = :email");
+        $stmt = $this->conn->prepare("SELECT id, nome, apelido, email, genero, bio, foto_perfil, is_admin, senha FROM usuarios WHERE email = :email");
         $stmt->bindParam(':email', $email);
         $stmt->execute();
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -61,7 +61,6 @@ class LoginModel
                 'usuario' => [
                     'id'          => $user['id'],
                     'nome'        => $user['nome'],
-                    'sobrenome'   => $user['sobrenome'],
                     'apelido'     => $user['apelido'],
                     'email'       => $user['email'],
                     'genero'      => $user['genero'],
