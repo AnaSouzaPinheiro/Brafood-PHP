@@ -31,7 +31,7 @@ class Auth
 
         $conn = Database::getInstance()->getConnection();
         $stmt = $conn->prepare(
-            'SELECT id, nome, sobrenome, apelido, email, genero, bio, foto_perfil, is_admin
+            'SELECT id, nome, apelido, email, genero, bio, foto_perfil, is_admin
              FROM usuarios
              WHERE token = :token',
         );
