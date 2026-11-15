@@ -64,7 +64,7 @@ try {
     }
 } catch (\Throwable $e) {
     http_response_code(500);
-    $response = ['mensagem' => 'Erro interno: ' . $e->getMessage()];
+    $response = ['mensagem' => \App\Config\Logger::falha('admin/secoes_receitas', $e)];
 }
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE);

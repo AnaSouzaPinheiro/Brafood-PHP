@@ -45,7 +45,8 @@ class FavoritoCtl
                 'error' => $e->getMessage()
             ]);
 
-            return ['success' => false, 'error' => $e->getMessage()];
+            // Erros de banco ficam só no log; mensagens de negócio (ex.: receita inexistente) seguem para o cliente
+            return ['success' => false, 'error' => $e instanceof \PDOException ? 'Erro ao favoritar.' : $e->getMessage()];
         }
     }
 

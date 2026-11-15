@@ -6,10 +6,13 @@ RewriteEngine On
 </FilesMatch>
 RedirectMatch 403 ^/(.*/)?(vendor|logs|tests|cache|\.git)(/|$)
 
-# Hospedagens com PHP via CGI/FastCGI (InfinityFree incluso) descartam o
-# header Authorization por padrão. Repassa para o PHP conseguir ler.
+# Hospedagens com PHP via CGI/FastCGI descartam o header Authorization
+# por padrão. Repassa para o PHP conseguir ler.
 RewriteCond %{HTTP:Authorization} ^(.*)
 RewriteRule ^ - [E=HTTP_AUTHORIZATION:%1]
+
+# Uploads são só imagens: nunca devolve nem executa scripts dessa pasta
+RewriteRule ^uploads/.*\.(php[0-9]?|phtml|phar|pl|py|cgi|sh)$ - [F,L]
 
 # Responde preflight OPTIONS direto, sem passar pelo PHP
 RewriteCond %{REQUEST_METHOD} OPTIONS
@@ -29,6 +32,11 @@ RewriteRule ^(.*)$ $1 [R=200,L]
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-User-Id"
     Header always set Access-Control-Allow-Credentials "true"
+
+    # Cabeçalhos de segurança
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]

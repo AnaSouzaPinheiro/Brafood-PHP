@@ -16,7 +16,7 @@ if (!function_exists('getRequestHeader')) {
             return $_SERVER[$serverKey];
         }
         // Alguns hosts compartilhados (CGI com redirecionamento interno,
-        // caso do InfinityFree) renomeiam o header pra REDIRECT_HTTP_*
+        // hospedagens com redirecionamento interno) renomeiam o header pra REDIRECT_HTTP_*
         $redirectKey = 'REDIRECT_' . $serverKey;
         if (isset($_SERVER[$redirectKey])) {
             return $_SERVER[$redirectKey];
