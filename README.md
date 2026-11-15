@@ -48,6 +48,7 @@ API REST em PHP e MySQL/MariaDB do BraFood, uma aplicação web de receitas. Ate
 
 **Outros**
 - Newsletter (inscrição e cancelamento) e formulário de contato por e-mail, ambos com limite por IP.
+- `sitemap.xml` gerado a partir das receitas e categorias, com cache de 1 hora.
 - Logs por dia e por assunto em `logs/`, com retenção automática.
 
 ## Endpoints
@@ -56,10 +57,10 @@ Todas as rotas ficam em `/routes/<arquivo>.php` (não há roteador central). Cor
 
 | Método | Rota | Autenticação | Descrição |
 | --- | --- | --- | --- |
-| POST | `login.php` | Não | Login (`email`, `senha`); responde 429 com `Retry-After` após muitas falhas. Se o corpo trouxer `confirmarSenha`, executa o cadastro |
+| POST | `login.php` | Não | Login (`email`, `senha`), com limite de tentativas. Se o corpo trouxer `confirmarSenha`, executa o cadastro |
 | POST | `cadastro.php` | Não | Alias do cadastro (`nome`, `apelido`, `email`, `senha`, `confirmarSenha`) |
 | POST | `logout.php` | Bearer (opcional) | Encerra a sessão do aparelho atual |
-| POST | `solicitar_recuperacao.php` | Não | Pede o e-mail de recuperação (`email`); resposta idêntica para e-mails cadastrados ou não, enviada antes do envio do e-mail |
+| POST | `solicitar_recuperacao.php` | Não | Pede o e-mail de recuperação (`email`); a resposta é a mesma para qualquer e-mail |
 | POST | `resetar_senha.php` | Não | Redefine a senha (`token`, `senha`, `confirmarSenha`) |
 | GET | `apelido.php?verificar=` / `?sugerir=` | Não | Valida/disponibilidade de apelido ou sugere um |
 | GET | `user.php[?id=]` | Bearer (dono ou admin) | Dados privados do usuário |
@@ -85,6 +86,7 @@ Todas as rotas ficam em `/routes/<arquivo>.php` (não há roteador central). Cor
 | GET | `slide_home.php?limit=` | Não | Slide da home |
 | GET | `secoes_carrossel.php` | Não | Seções da home (cache de 6 h) |
 | GET | `secoes_carrossel.php?purge` | Bearer + admin | Limpa o cache das seções |
+| GET | `sitemap.php` | Não | `sitemap.xml` com as páginas públicas, receitas e categorias (o front o serve em `/sitemap.xml`) |
 | GET | `receita_destaque.php` | Não | Receita da semana |
 | GET (`?busca=`), POST, DELETE | `receita_destaque.php` | Bearer + admin | Buscar candidatas, fixar e remover o destaque manual |
 | POST, DELETE | `newsletter.php` | Não | Inscrever e cancelar inscrição |
@@ -147,15 +149,16 @@ GET /routes/receitas_categoria.php?id=3&ordenar=mais_novos&dificuldades=1,2&temp
 
 ## Autenticação e segurança
 
-- **Token de sessão:** no login, o servidor gera `bin2hex(random_bytes(32))` (64 caracteres) e grava na tabela `sessoes`, um registro por aparelho. O front envia o token em `Authorization: Bearer`. `Auth::usuarioAutenticado()` resolve o usuário a partir da sessão; `Auth::requireAuth()` responde 401 sem sessão válida; `Auth::requireAdmin()` exige também `is_admin = 1` (403 caso contrário); `Auth::requireOwnership()` limita a ação ao dono do recurso ou a um administrador.
-- **Senhas:** `password_hash` / `password_verify`. Política: mínimo de 8 caracteres, com dígito, letra minúscula, maiúscula e caractere especial.
-- **Recuperação de senha:** token de 40 caracteres hexadecimais com validade de 1 hora, apagado após o uso. `solicitar_recuperacao.php` devolve sempre a mesma resposta ("Se o e-mail estiver cadastrado, enviaremos um link…"), inclusive quando o e-mail não existe, quando o envio falha (o erro vai só para o log) e quando o limite é atingido, para não revelar quem tem conta.
-
-- **Banco:** consultas com prepared statements (PDO).
-- **Autoria:** em receitas, comentários e avaliações, o autor sempre vem do token, nunca do corpo da requisição.
-- **Upload:** valida o arquivo como imagem (`getimagesize`), redimensiona e recomprime, e grava com nome único. Os arquivos ficam em `uploads/`, fora do versionamento.
-- **CORS e acesso a arquivos:** o `.htaccess` restringe as origens permitidas (domínio de produção e `http://localhost:4200`), bloqueia o acesso público a `.env`, `composer.*`, logs, `vendor`, `tests`, `cache` e repassa o header `Authorization` em hospedagens CGI/FastCGI.
-- **Erros e logs:** `display_errors` desligado; erros nativos e da aplicação vão para `logs/AAAA-MM-DD/`.
+- **Sessões por aparelho:** o login gera um token aleatório de 64 caracteres (`random_bytes`), guardado na tabela `sessoes`, e o front o envia em `Authorization: Bearer`. Cada aparelho tem a sua sessão, e sair de um não derruba os outros. Sessões inativas expiram.
+- **Perfis de acesso:** `Auth::requireAuth()` exige sessão válida, `Auth::requireAdmin()` exige também perfil de administrador, e `Auth::requireOwnership()` limita a ação ao dono do recurso (ou a um administrador). Todas as rotas administrativas usam o mesmo mecanismo.
+- **Autoria confiável:** em receitas, comentários e avaliações, o autor vem sempre do token, nunca do corpo da requisição.
+- **Senhas:** `password_hash` / `password_verify`, com política de complexidade (tamanho mínimo, dígito, maiúscula, minúscula e caractere especial).
+- **Recuperação de senha:** token temporário, de uso único, enviado por e-mail. A resposta é a mesma exista a conta ou não, e o e-mail é enviado depois de a resposta ser entregue.
+- **Proteção contra abuso:** limite de tentativas no login e na recuperação de senha, e limite de requisições por visitante no cadastro, na newsletter, no contato e na geração de receita por IA. Ao exceder, a API responde `429` com `Retry-After`. O IP do visitante só considera cabeçalhos de proxy quando a conexão vem de um endereço interno.
+- **Banco de dados:** consultas com prepared statements (PDO).
+- **Erros e logs:** o detalhe técnico das falhas vai para logs por dia e por assunto, com retenção automática; o cliente recebe só uma mensagem genérica.
+- **Upload de imagens:** valida o arquivo como imagem, redimensiona, recomprime e grava com nome único; scripts na pasta de uploads não são servidos nem executados.
+- **HTTP:** CORS restrito às origens do app, cabeçalhos de segurança (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) e bloqueio do acesso público a `.env`, `composer.*`, logs, `vendor`, `tests` e `cache`.
 
 ## Arquitetura e estrutura de pastas
 
@@ -177,7 +180,8 @@ BraFood-PHP/
 ├── service/                       # AiService, UploadService, ApelidoService, ReceitaDiffService,
 │                                  # HomeRotacaoService, ImageCleanupService, RateLimiter,
 │                                  # RequestThrottle, ClientIp
-├── migrations/                    # Alterações de schema (SQL), em ordem de data
+├── database/schema.sql            # Schema completo (somente estrutura)
+├── migrations/                    # Histórico das alterações de schema (SQL), em ordem de data
 ├── tests/                         # PHPUnit (bootstrap em tests/bootstrap.php)
 ├── uploads/                       # Imagens enviadas (não versionado)
 ├── cache/                         # Cache das seções da home e contadores do limite de tentativas (não versionado)
@@ -186,7 +190,7 @@ BraFood-PHP/
 
 ## Banco de dados
 
-O banco é composto por 21 tabelas InnoDB (`utf8mb4`). A pasta `migrations/` guarda apenas as alterações incrementais (a mais antiga é de 2026-11-05).
+O banco é composto por 20 tabelas InnoDB (`utf8mb4`) e 18 chaves estrangeiras. O schema completo está em [`database/schema.sql`](database/schema.sql) (só a estrutura, sem dados), que já inclui o resultado de todas as migrations. A pasta `migrations/` guarda o histórico das alterações incrementais (a mais antiga é de 2026-11-05) e serve para atualizar um banco antigo; um banco novo usa só o `schema.sql`.
 
 ```mermaid
 erDiagram
@@ -213,7 +217,7 @@ erDiagram
     receitas ||--o{ destaque_historico : "semana"
 ```
 
-Tabelas auxiliares: `newsletter_inscritos`. Chaves estrangeiras com `ON DELETE CASCADE` existem em `sessoes`, `receitas`, `receita_imagens`, `ingredientes` (→ `itens_ingredientes`), `etapas_preparo`, `descricoes_preparo`, `comentarios`, `favoritos`, `receita_subcategoria`, `subcategorias` e `receitas_secoes_carrossel`. `secoes_carrossel` usa `ON DELETE SET NULL` para categoria e subcategoria.
+Tabela auxiliar: `newsletter_inscritos`. As relações principais usam chaves estrangeiras com `ON DELETE CASCADE` (sessões, receitas e seus ingredientes, etapas e imagens, comentários, favoritos, subcategorias e vínculos com as seções da home).
 
 ## Variáveis de ambiente
 
@@ -252,7 +256,12 @@ Requisitos: PHP 8.2+ (com PDO MySQL, `mbstring` e GD), MySQL/MariaDB, Composer e
    ```bash
    composer install
    ```
-3. Crie o banco (`utf8mb4`) e carregue o schema. O repositório só tem as migrations incrementais, sem schema base.
+3. Crie o banco e carregue o schema (não rode as migrations num banco novo):
+   ```bash
+   mysql -u root -p -e "CREATE DATABASE brafood_php CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci"
+   mysql -u root -p brafood_php < database/schema.sql
+   ```
+   O banco nasce vazio (sem categorias, receitas ou usuários). Para ter um administrador, cadastre uma conta pelo app e marque-a: `UPDATE usuarios SET is_admin = 1 WHERE email = 'seu-email@example.com';`. As categorias e subcategorias são criadas depois, pelo painel administrativo.
 4. Configure o ambiente: `cp .env.example .env` e preencha as variáveis.
 5. Garanta permissão de escrita nas pastas `uploads/`, `logs/` e `cache/`.
 6. Suba o Apache e o MySQL. A URL base da API usada pelo front em desenvolvimento é a pasta do projeto no servidor local (ver `environment.development.ts` do front).
@@ -263,7 +272,7 @@ Requisitos: PHP 8.2+ (com PDO MySQL, `mbstring` e GD), MySQL/MariaDB, Composer e
 vendor/bin/phpunit
 ```
 
-A suíte tem 123 testes e **não usa o banco real**: `tests/bootstrap.php` aponta a conexão para um destino inexistente e os controllers recebem models simulados (mocks).
+A suíte tem 127 testes e **não usa o banco real**: `tests/bootstrap.php` aponta a conexão para um destino inexistente e os controllers recebem models simulados (mocks).
 
 ## Deploy
 
