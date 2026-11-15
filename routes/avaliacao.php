@@ -75,5 +75,5 @@ try {
     }
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['mensagem' => 'Erro interno: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['mensagem' => \App\Config\Logger::falha('avaliacao', $e)], JSON_UNESCAPED_UNICODE);
 }

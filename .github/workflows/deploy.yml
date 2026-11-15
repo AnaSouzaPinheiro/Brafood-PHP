@@ -1,4 +1,4 @@
-name: Deploy API (InfinityFree)
+name: Deploy API
 
 on:
   push:

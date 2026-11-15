@@ -80,6 +80,6 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'mensagem' => 'Erro no servidor: ' . $e->getMessage()
+        'mensagem' => \App\Config\Logger::falha('receitas/update', $e)
     ]);
 }

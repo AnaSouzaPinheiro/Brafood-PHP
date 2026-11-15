@@ -12,6 +12,9 @@ use PDO;
  */
 class Auth
 {
+    /** Dias sem uso após os quais uma sessão deixa de ser aceita */
+    public const SESSAO_DIAS_VALIDADE = 180;
+
     /**
      * Retorna o usuário autenticado (sem a senha) ou null se o token
      * não veio, é inválido, ou não bate com nenhum usuário.
@@ -34,12 +37,14 @@ class Auth
         $campos = 'u.id, u.nome, u.apelido, u.email, u.genero, u.bio, u.foto_perfil, u.is_admin';
 
         // 1) Sessões por aparelho (tabela sessoes)
+        $usaSessoes = true;
         try {
             $stmt = $conn->prepare(
                 "SELECT $campos, s.id AS sessao_id
                  FROM sessoes s
                  JOIN usuarios u ON u.id = s.id_usuario
-                 WHERE s.token = :token"
+                 WHERE s.token = :token
+                   AND s.ultimo_uso > NOW() - INTERVAL " . self::SESSAO_DIAS_VALIDADE . " DAY"
             );
             $stmt->execute([':token' => $token]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -55,6 +60,13 @@ class Auth
             }
         } catch (\PDOException $e) {
             // Tabela ainda não criada (migration não rodou): segue para o modo antigo
+            $usaSessoes = false;
+        }
+
+        // Com a tabela de sessões, token desconhecido ou expirado não vale:
+        // o modo antigo existe só para bancos que ainda não rodaram a migration.
+        if ($usaSessoes) {
+            return null;
         }
 
         // 2) Modo antigo: token único em usuarios.token (sessões de antes da migration)

@@ -58,6 +58,23 @@ class Logger
         self::write('ERROR', $context, $message, $extra);
     }
 
+    /**
+     * Para blocos catch das rotas: grava o detalhe técnico no log e devolve
+     * uma mensagem genérica, que é a única coisa que deve chegar ao cliente.
+     */
+    public static function falha(
+        string $context,
+        \Throwable $e,
+        string $mensagemPublica = 'Erro interno. Tente novamente em instantes.'
+    ): string {
+        self::error($context, 'Exceção não tratada', [
+            'erro'    => $e->getMessage(),
+            'arquivo' => basename($e->getFile()) . ':' . $e->getLine(),
+        ]);
+
+        return $mensagemPublica;
+    }
+
     public static function fatal(string $context, string $message, array $extra = []): void
     {
         self::write('FATAL', $context, $message, $extra);
