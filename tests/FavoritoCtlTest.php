@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Controller\FavoritoCtl;
+use App\Model\FavoritoModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/FavoritoModel.php';
@@ -17,7 +19,7 @@ class FavoritoCtlTest extends TestCase
         $model = $this->createMock(FavoritoModel::class);
         $model->method('isFavorite')->willReturn(true);
 
-        $ctl = new FavoritoCtl(null);
+        $ctl = new FavoritoCtl($this->createMock(FavoritoModel::class));
         $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -32,7 +34,7 @@ class FavoritoCtlTest extends TestCase
         $model = $this->createMock(FavoritoModel::class);
         $model->method('isFavorite')->willReturn(false);
 
-        $ctl = new FavoritoCtl(null);
+        $ctl = new FavoritoCtl($this->createMock(FavoritoModel::class));
         $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -49,71 +51,44 @@ class FavoritoCtlTest extends TestCase
     public function testAddJaFavoritadoRetornaFalse(): void
     {
         $model = $this->createMock(FavoritoModel::class);
-        $model->method('isFavorite')->willReturn(true);
+        $model->method('addWithIncrement')
+              ->willReturn(['success' => false, 'mensagem' => 'Já favoritado']);
 
-        $dbMock = $this->createMock(PDO::class);
-        $dbMock->method('beginTransaction')->willReturn(true);
-        $dbMock->method('rollBack')->willReturn(true);
-
-        $ctl = new FavoritoCtl($dbMock);
-        $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
-        $ref->setAccessible(true);
-        $ref->setValue($ctl, $model);
+        $ctl = new FavoritoCtl($model);
 
         $resultado = $ctl->add(1, 10);
 
         $this->assertFalse($resultado['success']);
-        $this->assertEquals('Já favoritado', $resultado['message']);
+        $this->assertEquals('Já favoritado', $resultado['mensagem']);
     }
 
     public function testAddComSucesso(): void
     {
         $model = $this->createMock(FavoritoModel::class);
-        $model->method('isFavorite')->willReturn(false);
-        $model->method('add')->willReturn(true);
+        $model->expects($this->once())
+              ->method('addWithIncrement')
+              ->with(1, 10)
+              ->willReturn(['success' => true]);
 
-        $stmt = $this->createMock(PDOStatement::class);
-        $stmt->method('execute')->willReturn(true);
-        $stmt->method('rowCount')->willReturn(1);
-
-        $dbMock = $this->createMock(PDO::class);
-        $dbMock->method('beginTransaction')->willReturn(true);
-        $dbMock->method('commit')->willReturn(true);
-        $dbMock->method('prepare')->willReturn($stmt);
-
-        $ctl = new FavoritoCtl($dbMock);
-        $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
-        $ref->setAccessible(true);
-        $ref->setValue($ctl, $model);
+        $ctl = new FavoritoCtl($model);
 
         $resultado = $ctl->add(1, 10);
 
         $this->assertTrue($resultado['success']);
     }
 
-    public function testAddReceitaNaoEncontradaLancaException(): void
+    public function testAddReceitaNaoEncontradaRetornaErro(): void
     {
         $model = $this->createMock(FavoritoModel::class);
-        $model->method('isFavorite')->willReturn(false);
-        $model->method('add')->willReturn(true);
+        $model->method('addWithIncrement')
+              ->willThrowException(new Exception('Receita não encontrada'));
 
-        $stmt = $this->createMock(PDOStatement::class);
-        $stmt->method('execute')->willReturn(true);
-        $stmt->method('rowCount')->willReturn(0);
-
-        $dbMock = $this->createMock(PDO::class);
-        $dbMock->method('beginTransaction')->willReturn(true);
-        $dbMock->method('rollBack')->willReturn(true);
-        $dbMock->method('prepare')->willReturn($stmt);
-
-        $ctl = new FavoritoCtl($dbMock);
-        $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
-        $ref->setAccessible(true);
-        $ref->setValue($ctl, $model);
+        $ctl = new FavoritoCtl($model);
 
         $resultado = $ctl->add(1, 99);
 
         $this->assertFalse($resultado['success']);
+        $this->assertEquals('Receita não encontrada', $resultado['error']);
     }
 
     // -------------------------------------------------------------------------
@@ -123,20 +98,12 @@ class FavoritoCtlTest extends TestCase
     public function testRemoveComSucesso(): void
     {
         $model = $this->createMock(FavoritoModel::class);
-        $model->method('remove')->willReturn(true);
+        $model->expects($this->once())
+              ->method('removeWithDecrement')
+              ->with(1, 10)
+              ->willReturn(['success' => true]);
 
-        $stmt = $this->createMock(PDOStatement::class);
-        $stmt->method('execute')->willReturn(true);
-
-        $dbMock = $this->createMock(PDO::class);
-        $dbMock->method('beginTransaction')->willReturn(true);
-        $dbMock->method('commit')->willReturn(true);
-        $dbMock->method('prepare')->willReturn($stmt);
-
-        $ctl = new FavoritoCtl($dbMock);
-        $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
-        $ref->setAccessible(true);
-        $ref->setValue($ctl, $model);
+        $ctl = new FavoritoCtl($model);
 
         $resultado = $ctl->remove(1, 10);
 
@@ -146,17 +113,10 @@ class FavoritoCtlTest extends TestCase
     public function testRemoveFalhaRetornaFalse(): void
     {
         $model = $this->createMock(FavoritoModel::class);
-        $model->method('remove')->willThrowException(new Exception('Erro'));
+        $model->method('removeWithDecrement')
+              ->willThrowException(new Exception('Erro'));
 
-        $dbMock = $this->createMock(PDO::class);
-        $dbMock->method('beginTransaction')->willReturn(true);
-        $dbMock->method('rollBack')->willReturn(true);
-        $dbMock->method('prepare')->willReturn($this->createMock(PDOStatement::class));
-
-        $ctl = new FavoritoCtl($dbMock);
-        $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
-        $ref->setAccessible(true);
-        $ref->setValue($ctl, $model);
+        $ctl = new FavoritoCtl($model);
 
         $resultado = $ctl->remove(1, 10);
 
@@ -174,7 +134,7 @@ class FavoritoCtlTest extends TestCase
             ['id' => 1, 'titulo' => 'Pão de queijo'],
         ]);
 
-        $ctl = new FavoritoCtl(null);
+        $ctl = new FavoritoCtl($this->createMock(FavoritoModel::class));
         $ref = new ReflectionProperty(FavoritoCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -190,7 +150,7 @@ class FavoritoCtlTest extends TestCase
 
     public function testGetLinkWhatsAppFormatoBasico(): void
     {
-        $ctl = new FavoritoCtl(null);
+        $ctl = new FavoritoCtl($this->createMock(FavoritoModel::class));
 
         $ingredientes = [
             ['titulo' => 'Massa', 'itens' => ['500g farinha', '2 ovos']],
@@ -204,7 +164,7 @@ class FavoritoCtlTest extends TestCase
 
     public function testGetLinkWhatsAppComLinkReceita(): void
     {
-        $ctl = new FavoritoCtl(null);
+        $ctl = new FavoritoCtl($this->createMock(FavoritoModel::class));
 
         $link = $ctl->getLinkWhatsApp([], 'https://brafood.com/receita/1');
 
@@ -213,7 +173,7 @@ class FavoritoCtlTest extends TestCase
 
     public function testGetLinkWhatsAppSemIngredientes(): void
     {
-        $ctl = new FavoritoCtl(null);
+        $ctl = new FavoritoCtl($this->createMock(FavoritoModel::class));
 
         $link = $ctl->getLinkWhatsApp([]);
 

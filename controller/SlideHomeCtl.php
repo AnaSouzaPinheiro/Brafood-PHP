@@ -12,9 +12,9 @@ class SlideHomeCtl
 {
     private $model;
 
-    public function __construct()
+    public function __construct(?SlideHomeModel $model = null)
     {
-        $this->model = new SlideHomeModel();
+        $this->model = $model ?? new SlideHomeModel();
     }
 
     public function index(): array

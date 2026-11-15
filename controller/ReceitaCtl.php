@@ -11,10 +11,10 @@ class ReceitaCtl
     private ReceitaModel $receitaModel;
     private CategoriaModel $categoriaModel;
 
-    public function __construct()
+    public function __construct(?ReceitaModel $receitaModel = null, ?CategoriaModel $categoriaModel = null)
     {
-        $this->receitaModel = new ReceitaModel();
-        $this->categoriaModel = new CategoriaModel();
+        $this->receitaModel = $receitaModel ?? new ReceitaModel();
+        $this->categoriaModel = $categoriaModel ?? new CategoriaModel();
     }
 
     public function listarPorUsuario($idUser)
@@ -140,11 +140,9 @@ class ReceitaCtl
 
         http_response_code(200);
 
-        echo json_encode([
-            'success' => true,
-            'mensagem' => 'Receita excluída com sucesso.'
-        ], JSON_UNESCAPED_UNICODE);
-
-        exit;
+        return [
+            'success'  => true,
+            'mensagem' => 'Receita excluída com sucesso.',
+        ];
     }
 }

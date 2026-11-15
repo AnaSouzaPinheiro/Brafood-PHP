@@ -21,14 +21,18 @@ class UpdatingRecipeCtl
     private ReceitaModel        $receitaModel;
     private ReceitaDiffService  $diffService;
 
-    public function __construct()
-    {
-        $updating           = new UpdatingRecipeModel();
-        $adding             = new AddingRecipeModel();
+    public function __construct(
+        ?UpdatingRecipeModel $updating = null,
+        ?AddingRecipeModel $adding = null,
+        ?ReceitaModel $receitaModel = null,
+        ?ReceitaDiffService $diffService = null
+    ) {
+        $updating = $updating ?? new UpdatingRecipeModel();
+        $adding   = $adding ?? new AddingRecipeModel();
 
         $this->model        = $updating;
-        $this->receitaModel = new ReceitaModel();
-        $this->diffService  = new ReceitaDiffService($updating, $adding);
+        $this->receitaModel = $receitaModel ?? new ReceitaModel();
+        $this->diffService  = $diffService ?? new ReceitaDiffService($updating, $adding);
     }
 
     public function editarReceita(array $dados, ?string $imagem1, array $galeriaFinal = []): array
@@ -66,7 +70,7 @@ class UpdatingRecipeCtl
             $this->diffService->diffSubcategoria(
                 $id,
                 $this->receitaModel->getSubcategoria($id),
-                $dados['idSubcategoria'] ?? null
+                (array) ($dados['idSubcategoria'] ?? [])
             );
 
             // 4. Ingredientes

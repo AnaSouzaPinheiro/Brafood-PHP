@@ -22,9 +22,9 @@ class SecaoCarrosselCtl
 {
     private $model;
 
-    public function __construct()
+    public function __construct(?SecaoCarrossel $model = null)
     {
-        $this->model = new SecaoCarrossel();
+        $this->model = $model ?? new SecaoCarrossel();
     }
 
     /** Mínimo de receitas para uma seção automática aparecer */

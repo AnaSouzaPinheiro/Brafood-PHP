@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Controller\AddingRecipeCtl;
+use App\Model\AddingRecipeModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/AddingRecipeModel.php';
@@ -14,9 +16,9 @@ class AddingRecipeCtlTest extends TestCase
 
     public function testAdicionarReceitaSemTitulo(): void
     {
-        $ctl = new AddingRecipeCtl(null);
+        $ctl = new AddingRecipeCtl($this->createMock(AddingRecipeModel::class));
 
-        $resultado = $ctl->adicionarReceita(['categoria' => 'Doces'], []);
+        $resultado = $ctl->adicionarReceita(['categoria' => 'Doces'], null);
 
         $this->assertFalse($resultado['success']);
         $this->assertEquals('Título e categoria são obrigatórios.', $resultado['message']);
@@ -24,9 +26,9 @@ class AddingRecipeCtlTest extends TestCase
 
     public function testAdicionarReceitaSemCategoria(): void
     {
-        $ctl = new AddingRecipeCtl(null);
+        $ctl = new AddingRecipeCtl($this->createMock(AddingRecipeModel::class));
 
-        $resultado = $ctl->adicionarReceita(['titulo' => 'Bolo'], []);
+        $resultado = $ctl->adicionarReceita(['titulo' => 'Bolo'], null);
 
         $this->assertFalse($resultado['success']);
         $this->assertEquals('Título e categoria são obrigatórios.', $resultado['message']);
@@ -34,9 +36,9 @@ class AddingRecipeCtlTest extends TestCase
 
     public function testAdicionarReceitaSemDados(): void
     {
-        $ctl = new AddingRecipeCtl(null);
+        $ctl = new AddingRecipeCtl($this->createMock(AddingRecipeModel::class));
 
-        $resultado = $ctl->adicionarReceita([], []);
+        $resultado = $ctl->adicionarReceita([], null);
 
         $this->assertFalse($resultado['success']);
         $this->assertEquals('Título e categoria são obrigatórios.', $resultado['message']);
@@ -52,7 +54,7 @@ class AddingRecipeCtlTest extends TestCase
         $model->method('criarEtapa')->willReturn(1);
         $model->method('criarDescricaoEtapa')->willReturn(null);
 
-        $ctl = new AddingRecipeCtl(null);
+        $ctl = new AddingRecipeCtl($this->createMock(AddingRecipeModel::class));
         $ref = new ReflectionProperty(AddingRecipeCtl::class, 'addRecipe');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -69,7 +71,7 @@ class AddingRecipeCtlTest extends TestCase
             ],
         ];
 
-        $resultado = $ctl->adicionarReceita($dados, []);
+        $resultado = $ctl->adicionarReceita($dados, null);
 
         $this->assertTrue($resultado['success']);
         $this->assertEquals(42, $resultado['id']);
@@ -81,7 +83,7 @@ class AddingRecipeCtlTest extends TestCase
         $model = $this->createMock(AddingRecipeModel::class);
         $model->method('criarReceita')->willReturn(1);
 
-        $ctl = new AddingRecipeCtl(null);
+        $ctl = new AddingRecipeCtl($this->createMock(AddingRecipeModel::class));
         $ref = new ReflectionProperty(AddingRecipeCtl::class, 'addRecipe');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -90,7 +92,7 @@ class AddingRecipeCtlTest extends TestCase
         $resultado = $ctl->adicionarReceita([
             'titulo'    => 'Bolo',
             'categoria' => 'Doces',
-        ], []);
+        ], null);
 
         $this->assertTrue($resultado['success']);
     }
@@ -103,12 +105,12 @@ class AddingRecipeCtlTest extends TestCase
         $model->method('criarReceita')
               ->willThrowException(new Exception('Erro no banco'));
 
-        $ctl = new AddingRecipeCtl(null);
+        $ctl = new AddingRecipeCtl($this->createMock(AddingRecipeModel::class));
         $ref = new ReflectionProperty(AddingRecipeCtl::class, 'addRecipe');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
 
-        $ctl->adicionarReceita(['titulo' => 'Bolo', 'categoria' => 'Doces'], []);
+        $ctl->adicionarReceita(['titulo' => 'Bolo', 'categoria' => 'Doces'], null);
     }
 
     public function testAdicionarReceitaComIngredientesEtapasVazios(): void
@@ -118,7 +120,7 @@ class AddingRecipeCtlTest extends TestCase
         $model->expects($this->never())->method('criarItemIngrediente');
         $model->expects($this->never())->method('criarEtapa');
 
-        $ctl = new AddingRecipeCtl(null);
+        $ctl = new AddingRecipeCtl($this->createMock(AddingRecipeModel::class));
         $ref = new ReflectionProperty(AddingRecipeCtl::class, 'addRecipe');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -128,7 +130,7 @@ class AddingRecipeCtlTest extends TestCase
             'categoria'    => 'Doces',
             'ingredientes' => [],
             'etapas'       => [],
-        ], []);
+        ], null);
 
         $this->assertTrue($resultado['success']);
     }

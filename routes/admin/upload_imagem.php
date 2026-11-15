@@ -2,24 +2,14 @@
 
 require_once __DIR__ . '/../../config/core.php';
 
+use App\Config\Auth;
 use App\Controller\AdminSecaoCtl;
 use App\Service\UploadService;
 
 header('Content-Type: application/json; charset=UTF-8');
 
-// Verificar admin
-$ctl    = new AdminSecaoCtl();
-$userId = (int) getRequestHeader('X-User-Id');
-
-if (!$userId) {
-    http_response_code(403);
-
-    echo json_encode([
-        'mensagem' => 'Acesso negado.'
-    ], JSON_UNESCAPED_UNICODE);
-
-    exit;
-}
+// Verificar admin (token Bearer + is_admin)
+Auth::requireAdmin();
 
 // Contexto
 $contexto = $_GET['contexto'] ?? 'geral';

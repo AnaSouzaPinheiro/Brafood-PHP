@@ -30,6 +30,36 @@ if (!function_exists('getRequestHeader')) {
     }
 }
 
+if (!function_exists('responderEContinuar')) {
+    /**
+     * Envia a resposta ao cliente e encerra a conexão, mas deixa o PHP seguir
+     * executando (ex.: enviar e-mail depois de responder). Assim o tempo de
+     * resposta não depende do trabalho feito depois.
+     * Se a hospedagem/proxy não permitir fechar a conexão antes do fim do
+     * script, o efeito é só o de sempre: a resposta sai quando o script termina.
+     */
+    function responderEContinuar(string $corpo): void
+    {
+        ignore_user_abort(true);
+
+        if (!headers_sent()) {
+            header('Connection: close');
+            header('Content-Length: ' . strlen($corpo));
+        }
+
+        echo $corpo;
+
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
+        flush();
+
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        }
+    }
+}
+
 if (!function_exists('cacheDir')) {
     /**
      * Pasta de cache dentro da própria API. Não usamos sys_get_temp_dir():

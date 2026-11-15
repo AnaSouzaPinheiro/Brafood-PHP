@@ -8,9 +8,9 @@ class CategoriaCtl
 {
     private CategoriaModel $categoriaModel;
 
-    public function __construct()
+    public function __construct(?CategoriaModel $categoriaModel = null)
     {
-        $this->categoriaModel = new CategoriaModel();
+        $this->categoriaModel = $categoriaModel ?? new CategoriaModel();
     }
 
     public function listarCategorias()

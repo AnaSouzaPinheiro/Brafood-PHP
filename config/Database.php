@@ -60,6 +60,12 @@ class Database
 
         } catch (PDOException $exception) {
 
+            // Nos testes (tests/bootstrap.php) a falha sobe como exceção, em vez de
+            // responder 500 e encerrar o processo do PHPUnit.
+            if (defined('APP_ENV') && APP_ENV === 'testing') {
+                throw $exception;
+            }
+
             Logger::fatal('database', 'Falha na conexão com o banco', [
                 'message' => $exception->getMessage()
             ]);

@@ -14,9 +14,12 @@ class UserCtl
 {
     private UserModel $model;
 
-    public function __construct()
+    private ?ApelidoService $apelidoService;
+
+    public function __construct(?UserModel $model = null, ?ApelidoService $apelidoService = null)
     {
-        $this->model = new UserModel();
+        $this->model = $model ?? new UserModel();
+        $this->apelidoService = $apelidoService;
     }
 
     public function editarUsuario(array $dados): array
@@ -24,7 +27,7 @@ class UserCtl
         $id = (int) $dados['id'];
 
         $apelido = trim((string) ($dados['apelido'] ?? ''));
-        if ($erro = (new ApelidoService())->validar($apelido, $id)) {
+        if ($erro = ($this->apelidoService ?? new ApelidoService())->validar($apelido, $id)) {
             return [
                 'success'  => false,
                 'campo'    => 'apelido',

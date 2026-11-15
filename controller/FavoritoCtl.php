@@ -16,9 +16,9 @@ class FavoritoCtl
 {
     private $model;
 
-    public function __construct()
+    public function __construct(?FavoritoModel $model = null)
     {
-        $this->model = new FavoritoModel();
+        $this->model = $model ?? new FavoritoModel();
     }
 
     public function check(int $idUser, int $idReceita): array

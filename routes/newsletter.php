@@ -3,12 +3,18 @@
 require_once __DIR__ . '/../config/core.php';
 
 use App\Model\NewsletterModel;
+use App\Service\RequestThrottle;
 
 header('Content-Type: application/json; charset=utf-8');
 
 $model  = new NewsletterModel();
 $method = $_SERVER['REQUEST_METHOD'];
 $body   = json_decode(file_get_contents('php://input'), true) ?? [];
+
+// No máximo 10 inscrições/cancelamentos por hora por IP
+if ($method === 'POST' || $method === 'DELETE') {
+    RequestThrottle::porIp('newsletter', 10, 3600);
+}
 
 try {
     switch ($method) {

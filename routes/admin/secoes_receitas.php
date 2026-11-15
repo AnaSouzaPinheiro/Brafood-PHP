@@ -2,18 +2,15 @@
 
 require_once __DIR__ . '/../../config/core.php';
 
+use App\Config\Auth;
 use App\Model\AdminSecaoModel;
 
 $model  = new AdminSecaoModel();
 $method = $_SERVER['REQUEST_METHOD'];
 $body   = json_decode(file_get_contents('php://input'), true) ?? [];
 
-$userId  = (int) getRequestHeader('X-User-Id');
-
-if ($method !== 'GET' && (!$userId || !$model->isAdmin($userId))) {
-    http_response_code(403);
-    echo json_encode(['mensagem' => 'Acesso negado.'], JSON_UNESCAPED_UNICODE);
-    exit;
+if ($method !== 'GET') {
+    Auth::requireAdmin();
 }
 
 try {
