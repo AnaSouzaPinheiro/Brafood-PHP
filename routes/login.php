@@ -31,7 +31,12 @@ if (isset($data['confirmarSenha'])) {
 $response = $ctl->login($data);
 
 if (!($response['success'] ?? false)) {
-    http_response_code(401);
+    if ($response['bloqueado'] ?? false) {
+        http_response_code(429);
+        header('Retry-After: ' . (int) ($response['retry_after'] ?? 900));
+    } else {
+        http_response_code(401);
+    }
     echo json_encode($response, JSON_UNESCAPED_UNICODE);
     exit;
 }
