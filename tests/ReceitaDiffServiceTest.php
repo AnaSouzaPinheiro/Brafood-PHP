@@ -1,6 +1,9 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Model\AddingRecipeModel;
+use App\Service\ReceitaDiffService;
+use App\Model\UpdatingRecipeModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/UpdatingRecipeModel.php';
@@ -20,54 +23,65 @@ class ReceitaDiffServiceTest extends TestCase
     // diffSubcategoria
     // -------------------------------------------------------------------------
 
-    public function testDiffSubcategoriaRemoveQuandoNovaEhNula(): void
+    public function testDiffSubcategoriaRemoveQuandoNovaEhVazia(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
         $updating->expects($this->once())->method('removerSubcategorias')->with(1);
         $updating->expects($this->never())->method('vincularSubcategoria');
 
         $this->makeService($updating, $this->createMock(AddingRecipeModel::class))
-             ->diffSubcategoria(1, 'Bolos', null);
+             ->diffSubcategoria(1, [3], []);
     }
 
     public function testDiffSubcategoriaAdicionaQuandoNaoHavia(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->expects($this->never())->method('removerSubcategorias');
-        $updating->expects($this->once())->method('vincularSubcategoria')->with(1, 'Petiscos');
+        // Ao mudar, o service limpa os vínculos e recria só os novos
+        $updating->expects($this->once())->method('removerSubcategorias')->with(1);
+        $updating->expects($this->once())->method('vincularSubcategoria')->with(1, 5);
 
         $this->makeService($updating, $this->createMock(AddingRecipeModel::class))
-             ->diffSubcategoria(1, null, 'Petiscos');
+             ->diffSubcategoria(1, [], [5]);
     }
 
     public function testDiffSubcategoriaTrocaQuandoMudou(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
-        $updating->expects($this->once())->method('removerSubcategorias');
-        $updating->expects($this->once())->method('vincularSubcategoria')->with(1, 'Tortas');
+        $updating->expects($this->once())->method('removerSubcategorias')->with(1);
+        $updating->expects($this->once())->method('vincularSubcategoria')->with(1, 7);
 
         $this->makeService($updating, $this->createMock(AddingRecipeModel::class))
-             ->diffSubcategoria(1, 'Bolos', 'Tortas');
+             ->diffSubcategoria(1, [3], [7]);
     }
 
-    public function testDiffSubcategoriaNaoFazNadaQuandoIgual(): void
+    public function testDiffSubcategoriaVinculaTodasAsNovas(): void
+    {
+        $updating = $this->createMock(UpdatingRecipeModel::class);
+        $updating->expects($this->once())->method('removerSubcategorias')->with(1);
+        $updating->expects($this->exactly(2))->method('vincularSubcategoria');
+
+        $this->makeService($updating, $this->createMock(AddingRecipeModel::class))
+             ->diffSubcategoria(1, [3], [3, 8]);
+    }
+
+    public function testDiffSubcategoriaNaoFazNadaQuandoIgualEmOutraOrdem(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
         $updating->expects($this->never())->method('removerSubcategorias');
         $updating->expects($this->never())->method('vincularSubcategoria');
 
         $this->makeService($updating, $this->createMock(AddingRecipeModel::class))
-             ->diffSubcategoria(1, 'Bolos', 'Bolos');
+             ->diffSubcategoria(1, [3, 8], [8, 3]);
     }
 
-    public function testDiffSubcategoriaNaoFazNadaQuandoAmbasNulas(): void
+    public function testDiffSubcategoriaNaoFazNadaQuandoAmbasVazias(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
         $updating->expects($this->never())->method('removerSubcategorias');
         $updating->expects($this->never())->method('vincularSubcategoria');
 
         $this->makeService($updating, $this->createMock(AddingRecipeModel::class))
-             ->diffSubcategoria(1, null, null);
+             ->diffSubcategoria(1, [], []);
     }
 
     // -------------------------------------------------------------------------

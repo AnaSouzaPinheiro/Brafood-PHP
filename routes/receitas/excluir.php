@@ -42,7 +42,7 @@ $ctl = new ReceitaCtl();
 
 $response = $ctl->excluirReceita($id);
 
-if (isset($response['mensagem'])) {
+if (!($response['success'] ?? false)) {
     http_response_code($id <= 0 ? 400 : 404);
 }
 

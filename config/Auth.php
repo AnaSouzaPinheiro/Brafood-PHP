@@ -88,6 +88,26 @@ class Auth
     }
 
     /**
+     * Exige autenticação (token Bearer válido) E perfil de administrador.
+     * Responde 401 sem token válido e 403 se o usuário não for admin.
+     */
+    public static function requireAdmin(): array
+    {
+        $user = self::requireAuth();
+
+        if ((int) ($user['is_admin'] ?? 0) !== 1) {
+            http_response_code(403);
+            echo json_encode([
+                'success'  => false,
+                'mensagem' => 'Acesso negado.',
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        return $user;
+    }
+
+    /**
      * Exige que o usuário autenticado seja o dono do recurso (ou admin).
      * Responde 403 e encerra a execução caso contrário.
      */

@@ -1,6 +1,9 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Model\CategoriaModel;
+use App\Controller\ReceitaCtl;
+use App\Model\ReceitaModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/ReceitaModel.php';
@@ -15,7 +18,7 @@ class ReceitaCtlTest extends TestCase
 
     public function testListarPorUsuarioIdInvalido(): void
     {
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
 
         $resultado = $ctl->listarPorUsuario(0);
 
@@ -25,7 +28,7 @@ class ReceitaCtlTest extends TestCase
 
     public function testListarPorUsuarioIdNegativo(): void
     {
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
 
         $resultado = $ctl->listarPorUsuario(-1);
 
@@ -39,7 +42,7 @@ class ReceitaCtlTest extends TestCase
             ['id' => 1, 'titulo' => 'Pão de queijo'],
         ]);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rR = new ReflectionProperty(ReceitaCtl::class, 'receitaModel');
         $rR->setAccessible(true);
         $rR->setValue($ctl, $receitaModel);
@@ -56,7 +59,7 @@ class ReceitaCtlTest extends TestCase
 
     public function testListarPorCategoriaIdNulo(): void
     {
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
 
         $resultado = $ctl->listarPorCategoria(null);
 
@@ -68,7 +71,7 @@ class ReceitaCtlTest extends TestCase
         $catModel = $this->createMock(CategoriaModel::class);
         $catModel->method('buscarCategoriaPorId')->willReturn(null);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rC = new ReflectionProperty(ReceitaCtl::class, 'categoriaModel');
         $rC->setAccessible(true);
         $rC->setValue($ctl, $catModel);
@@ -88,7 +91,7 @@ class ReceitaCtlTest extends TestCase
             ['id' => 1, 'titulo' => 'Bolo de chocolate'],
         ]);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rC = new ReflectionProperty(ReceitaCtl::class, 'categoriaModel');
         $rC->setAccessible(true);
         $rC->setValue($ctl, $catModel);
@@ -114,7 +117,7 @@ class ReceitaCtlTest extends TestCase
             ['id' => 1, 'titulo' => 'Feijoada'],
         ]);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rR = new ReflectionProperty(ReceitaCtl::class, 'receitaModel');
         $rR->setAccessible(true);
         $rR->setValue($ctl, $receitaModel);
@@ -129,7 +132,7 @@ class ReceitaCtlTest extends TestCase
         $receitaModel = $this->createMock(ReceitaModel::class);
         $receitaModel->method('listarTodas')->with('feij')->willReturn([]);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rR = new ReflectionProperty(ReceitaCtl::class, 'receitaModel');
         $rR->setAccessible(true);
         $rR->setValue($ctl, $receitaModel);
@@ -145,7 +148,7 @@ class ReceitaCtlTest extends TestCase
 
     public function testBuscarPorIdInvalido(): void
     {
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
 
         $resultado = $ctl->buscarPorId(0);
 
@@ -157,7 +160,7 @@ class ReceitaCtlTest extends TestCase
         $receitaModel = $this->createMock(ReceitaModel::class);
         $receitaModel->method('buscarPorId')->willReturn(null);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rR = new ReflectionProperty(ReceitaCtl::class, 'receitaModel');
         $rR->setAccessible(true);
         $rR->setValue($ctl, $receitaModel);
@@ -174,7 +177,7 @@ class ReceitaCtlTest extends TestCase
         $receitaModel = $this->createMock(ReceitaModel::class);
         $receitaModel->method('buscarPorId')->willReturn($receitaFake);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rR = new ReflectionProperty(ReceitaCtl::class, 'receitaModel');
         $rR->setAccessible(true);
         $rR->setValue($ctl, $receitaModel);
@@ -190,7 +193,7 @@ class ReceitaCtlTest extends TestCase
 
     public function testExcluirReceitaIdInvalido(): void
     {
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
 
         $resultado = $ctl->excluirReceita(0);
 
@@ -202,7 +205,7 @@ class ReceitaCtlTest extends TestCase
         $receitaModel = $this->createMock(ReceitaModel::class);
         $receitaModel->method('excluirReceita')->willReturn(null);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rR = new ReflectionProperty(ReceitaCtl::class, 'receitaModel');
         $rR->setAccessible(true);
         $rR->setValue($ctl, $receitaModel);
@@ -217,7 +220,7 @@ class ReceitaCtlTest extends TestCase
         $receitaModel = $this->createMock(ReceitaModel::class);
         $receitaModel->method('excluirReceita')->willReturn(['id' => 1]);
 
-        $ctl = new ReceitaCtl(null);
+        $ctl = new ReceitaCtl($this->createMock(ReceitaModel::class), $this->createMock(CategoriaModel::class));
         $rR = new ReflectionProperty(ReceitaCtl::class, 'receitaModel');
         $rR->setAccessible(true);
         $rR->setValue($ctl, $receitaModel);

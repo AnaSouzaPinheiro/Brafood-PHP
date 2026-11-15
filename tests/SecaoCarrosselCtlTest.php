@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Model\SecaoCarrossel;
+use App\Controller\SecaoCarrosselCtl;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/SecaoCarrossel.php';

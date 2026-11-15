@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Model\ComentarioModel;
+use App\Controller\ComentariosCtl;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/ComentarioModel.php';
@@ -14,7 +16,7 @@ class ComentariosCtlTest extends TestCase
 
     public function testIndexSemIdReceitaRetorna400(): void
     {
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
 
         $resultado = $ctl->index(null);
 
@@ -24,7 +26,7 @@ class ComentariosCtlTest extends TestCase
 
     public function testIndexComIdZeroRetorna400(): void
     {
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
 
         $resultado = $ctl->index(0);
 
@@ -41,7 +43,7 @@ class ComentariosCtlTest extends TestCase
         $model = $this->createMock(ComentarioModel::class);
         $model->method('buscarComentarioPorReceita')->willReturn($comentariosFake);
 
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
         $ref = new ReflectionProperty(ComentariosCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -57,7 +59,7 @@ class ComentariosCtlTest extends TestCase
         $model = $this->createMock(ComentarioModel::class);
         $model->method('buscarComentarioPorReceita')->willReturn([]);
 
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
         $ref = new ReflectionProperty(ComentariosCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -74,7 +76,7 @@ class ComentariosCtlTest extends TestCase
 
     public function testStoreSemIdReceitaRetorna400(): void
     {
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
 
         $resultado = $ctl->store(['texto' => 'Oi', 'id_usuario' => 1]);
 
@@ -84,25 +86,30 @@ class ComentariosCtlTest extends TestCase
 
     public function testStoreSemTextoRetorna400(): void
     {
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
 
         $resultado = $ctl->store(['id_receita' => 1, 'id_usuario' => 1]);
 
         $this->assertEquals(400, $resultado['status']);
     }
 
-    public function testStoreSemIdUsuarioRetorna400(): void
+    public function testStoreUsaOUsuarioDoLoginEIgnoraIdDoCorpo(): void
     {
-        $ctl = new ComentariosCtl(null);
+        $model = $this->createMock(ComentarioModel::class);
+        $model->expects($this->once())
+              ->method('criar')
+              ->with($this->callback(fn ($dados) => $dados['id_usuario'] === 2));
 
-        $resultado = $ctl->store(['id_receita' => 1, 'texto' => 'Oi']);
+        $ctl = new ComentariosCtl($model, fn() => ['id' => 2]);
 
-        $this->assertEquals(400, $resultado['status']);
+        $resultado = $ctl->store(['id_receita' => 1, 'texto' => 'Oi', 'id_usuario' => 99]);
+
+        $this->assertEquals(201, $resultado['status']);
     }
 
     public function testStoreDadosVaziosRetorna400(): void
     {
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
 
         $resultado = $ctl->store([]);
 
@@ -114,7 +121,7 @@ class ComentariosCtlTest extends TestCase
         $model = $this->createMock(ComentarioModel::class);
         $model->expects($this->once())->method('criar');
 
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
         $ref = new ReflectionProperty(ComentariosCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -138,7 +145,7 @@ class ComentariosCtlTest extends TestCase
                   return $dados['id_comentario_pai'] === 5;
               }));
 
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
         $ref = new ReflectionProperty(ComentariosCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -158,7 +165,7 @@ class ComentariosCtlTest extends TestCase
         $model = $this->createMock(ComentarioModel::class);
         $model->method('criar')->willThrowException(new Exception('Erro no banco'));
 
-        $ctl = new ComentariosCtl(null);
+        $ctl = new ComentariosCtl($this->createMock(ComentarioModel::class), fn() => ['id' => 2]);
         $ref = new ReflectionProperty(ComentariosCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);

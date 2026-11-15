@@ -17,7 +17,7 @@
 
 require_once __DIR__ . '/../../config/core.php';
 
-use App\Model\AdminSecaoModel;
+use App\Config\Auth;
 use App\Service\AiService;
 
 header('Content-Type: application/json; charset=UTF-8');
@@ -29,10 +29,7 @@ function responder(int $status, array $dados): void
     exit;
 }
 
-$userId = (int) getRequestHeader('X-User-Id');
-if (!$userId || !(new AdminSecaoModel())->isAdmin($userId)) {
-    responder(403, ['mensagem' => 'Acesso negado.']);
-}
+Auth::requireAdmin();
 
 $body = json_decode(file_get_contents('php://input'), true) ?: [];
 $acao = $body['acao'] ?? '';

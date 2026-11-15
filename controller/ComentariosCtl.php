@@ -20,9 +20,13 @@ class ComentariosCtl
 {
     private $model;
 
-    public function __construct()
+    /** @var callable Resolve o usuário logado (em produção, Auth::requireAuth). */
+    private $autenticar;
+
+    public function __construct(?ComentarioModel $model = null, ?callable $autenticar = null)
     {
-        $this->model = new ComentarioModel();
+        $this->model = $model ?? new ComentarioModel();
+        $this->autenticar = $autenticar ?? [Auth::class, 'requireAuth'];
     }
 
     /**
@@ -57,7 +61,7 @@ class ComentariosCtl
     public function store(array $data): array
     {
         // Quem comenta é sempre o usuário do login (nunca o id do corpo)
-        $user = Auth::requireAuth();
+        $user = ($this->autenticar)();
         $data['id_usuario'] = (int) $user['id'];
 
         if (empty($data['id_receita']) || empty($data['texto']) || empty($data['id_usuario'])) {
@@ -129,7 +133,7 @@ class ComentariosCtl
      */
     public function update(int $id, array $data): array
     {
-        $user = Auth::requireAuth();
+        $user = ($this->autenticar)();
 
         $texto = trim((string) ($data['texto'] ?? ''));
         $tamanho = mb_strlen($texto);
@@ -167,7 +171,7 @@ class ComentariosCtl
      */
     public function destroy(int $id): array
     {
-        $user = Auth::requireAuth();
+        $user = ($this->autenticar)();
 
         $comentario = $this->model->buscarPorId($id);
 

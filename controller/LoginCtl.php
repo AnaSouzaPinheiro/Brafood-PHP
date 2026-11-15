@@ -17,9 +17,12 @@ class LoginCtl
 {
     private LoginModel $model;
 
-    public function __construct()
+    private ?ApelidoService $apelidoService;
+
+    public function __construct(?LoginModel $model = null, ?ApelidoService $apelidoService = null)
     {
-        $this->model = new LoginModel();
+        $this->model = $model ?? new LoginModel();
+        $this->apelidoService = $apelidoService;
     }
 
     public function login(array $data): array
@@ -57,7 +60,7 @@ class LoginCtl
 
         // Apelido = identificador público (/chef/{apelido}). Se não vier,
         // gera um a partir do nome; se vier, valida formato e unicidade.
-        $apelidoService = new ApelidoService();
+        $apelidoService = $this->apelidoService ?? new ApelidoService();
         $apelido = trim((string) ($data['apelido'] ?? ''));
 
         if ($apelido === '') {

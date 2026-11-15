@@ -15,9 +15,9 @@ class AddingRecipeCtl
 {
     private AddingRecipeModel $addRecipe;
 
-    public function __construct()
+    public function __construct(?AddingRecipeModel $addRecipe = null)
     {
-        $this->addRecipe = new AddingRecipeModel();
+        $this->addRecipe = $addRecipe ?? new AddingRecipeModel();
     }
 
     public function adicionarReceita(array $dados, ?string $imagem1, array $galeria = []): array

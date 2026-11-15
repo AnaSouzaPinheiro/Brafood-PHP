@@ -1,6 +1,11 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Model\AddingRecipeModel;
+use App\Service\ReceitaDiffService;
+use App\Model\ReceitaModel;
+use App\Controller\UpdatingRecipeCtl;
+use App\Model\UpdatingRecipeModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/UpdatingRecipeModel.php';
@@ -16,7 +21,7 @@ class UpdatingRecipeCtlTest extends TestCase
         ReceitaModel        $receita,
         ReceitaDiffService  $diff
     ): UpdatingRecipeCtl {
-        $ctl = new UpdatingRecipeCtl(null);
+        $ctl = new UpdatingRecipeCtl($this->createMock(UpdatingRecipeModel::class), $this->createMock(AddingRecipeModel::class), $this->createMock(ReceitaModel::class), $this->createMock(ReceitaDiffService::class));
 
         $r1 = new ReflectionProperty(UpdatingRecipeCtl::class, 'model');
         $r1->setAccessible(true);
@@ -54,7 +59,7 @@ class UpdatingRecipeCtlTest extends TestCase
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
         $receita  = $this->createMock(ReceitaModel::class);
-        $receita->method('getSubcategoria')->willReturn(null);
+        $receita->method('getSubcategoria')->willReturn([]);
         $receita->method('getIngredientes')->willReturn([]);
         $receita->method('getEtapas')->willReturn([]);
 
@@ -62,7 +67,7 @@ class UpdatingRecipeCtlTest extends TestCase
 
         $ctl = $this->makeCtl($updating, $receita, $diff);
 
-        $resultado = $ctl->editarReceita($this->dadosMinimos(), []);
+        $resultado = $ctl->editarReceita($this->dadosMinimos(), null);
 
         $this->assertTrue($resultado['success']);
         $this->assertEquals('Receita editada com sucesso!', $resultado['message']);
@@ -73,7 +78,7 @@ class UpdatingRecipeCtlTest extends TestCase
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
         $receita  = $this->createMock(ReceitaModel::class);
-        $receita->method('getSubcategoria')->willReturn('Bolos');
+        $receita->method('getSubcategoria')->willReturn([3]);
         $receita->method('getIngredientes')->willReturn([]);
         $receita->method('getEtapas')->willReturn([]);
 
@@ -84,7 +89,7 @@ class UpdatingRecipeCtlTest extends TestCase
 
         $ctl = $this->makeCtl($updating, $receita, $diff);
 
-        $ctl->editarReceita($this->dadosMinimos(), []);
+        $ctl->editarReceita($this->dadosMinimos(), null);
     }
 
     public function testEditarReceitaLancaExcecaoQuandoUpdateFalha(): void
@@ -98,10 +103,10 @@ class UpdatingRecipeCtlTest extends TestCase
         $diff    = $this->createMock(ReceitaDiffService::class);
 
         $this->makeCtl($updating, $receita, $diff)
-             ->editarReceita($this->dadosMinimos(), []);
+             ->editarReceita($this->dadosMinimos(), null);
     }
 
-    public function testEditarReceitaPassaImagensCorretamente(): void
+    public function testEditarReceitaPassaImagemCapaParaOModel(): void
     {
         $updating = $this->createMock(UpdatingRecipeModel::class);
         $updating->expects($this->once())
@@ -117,18 +122,36 @@ class UpdatingRecipeCtlTest extends TestCase
                      $this->anything(),
                      $this->anything(),
                      'img1.jpg',
-                     'img2.jpg',
+                     true,
+                     null,
+                     null,
                      null
                  );
 
         $receita = $this->createMock(ReceitaModel::class);
-        $receita->method('getSubcategoria')->willReturn(null);
+        $receita->method('getSubcategoria')->willReturn([]);
         $receita->method('getIngredientes')->willReturn([]);
         $receita->method('getEtapas')->willReturn([]);
 
         $diff = $this->createMock(ReceitaDiffService::class);
 
         $this->makeCtl($updating, $receita, $diff)
-             ->editarReceita($this->dadosMinimos(), ['imagem1' => 'img1.jpg', 'imagem2' => 'img2.jpg']);
+             ->editarReceita($this->dadosMinimos(), 'img1.jpg', ['galeria/a.jpg']);
+    }
+
+    public function testEditarReceitaSemSubcategoriaNoPayloadUsaListaVazia(): void
+    {
+        $receita = $this->createMock(ReceitaModel::class);
+        $receita->method('getSubcategoria')->willReturn([3]);
+        $receita->method('getIngredientes')->willReturn([]);
+        $receita->method('getEtapas')->willReturn([]);
+
+        $diff = $this->createMock(ReceitaDiffService::class);
+        $diff->expects($this->once())
+             ->method('diffSubcategoria')
+             ->with(1, [3], []);
+
+        $this->makeCtl($this->createMock(UpdatingRecipeModel::class), $receita, $diff)
+             ->editarReceita($this->dadosMinimos(), null);
     }
 }

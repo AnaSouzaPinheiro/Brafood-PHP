@@ -2,7 +2,10 @@
 
 require_once __DIR__ . '/../../config/core.php';
 
+use App\Config\Auth;
 use App\Service\AiService;
+
+Auth::requireAuth();
 
 $input = json_decode(file_get_contents("php://input"), true);
 

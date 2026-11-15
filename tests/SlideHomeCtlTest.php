@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Controller\SlideHomeCtl;
+use App\Model\SlideHomeModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/SlideHomeModel.php';
@@ -14,7 +16,7 @@ class SlideHomeCtlTest extends TestCase
 
     public function testIndexUsaLimitePadraoCinco(): void
     {
-        $model = $this->createMock(SlideHome::class);
+        $model = $this->createMock(SlideHomeModel::class);
         $model->expects($this->once())
               ->method('getRandomRecipes')
               ->with(5)
@@ -30,7 +32,7 @@ class SlideHomeCtlTest extends TestCase
 
     public function testIndexRespeiraLimiteDaQueryString(): void
     {
-        $model = $this->createMock(SlideHome::class);
+        $model = $this->createMock(SlideHomeModel::class);
         $model->expects($this->once())
               ->method('getRandomRecipes')
               ->with(3)
@@ -48,7 +50,7 @@ class SlideHomeCtlTest extends TestCase
 
     public function testIndexRetornaArrayVazioQuandoSemReceitas(): void
     {
-        $model = $this->createMock(SlideHome::class);
+        $model = $this->createMock(SlideHomeModel::class);
         $model->method('getRandomRecipes')->willReturn([]);
 
         $_GET = [];
@@ -62,7 +64,7 @@ class SlideHomeCtlTest extends TestCase
 
     public function testIndexConverteLimitParaInteiro(): void
     {
-        $model = $this->createMock(SlideHome::class);
+        $model = $this->createMock(SlideHomeModel::class);
         $model->expects($this->once())
               ->method('getRandomRecipes')
               ->with(2)   // "2abc" deve virar int(2)

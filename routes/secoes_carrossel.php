@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/core.php';
 
+use App\Config\Auth;
 use App\Controller\SecaoCarrosselCtl;
 
 // ── Cache em arquivo ──────────────────────────────────────────────────────────
@@ -13,6 +14,7 @@ define('CACHE_TTL',  6 * 3600); // segundos
 define('CACHE_FILE', cacheDir() . '/brafood_secoes_cache_' . date('Ymd') . '.json');
 
 if (isset($_GET['purge'])) {
+    Auth::requireAdmin();
     foreach (glob(cacheDir() . '/brafood_secoes_cache*.json') ?: [] as $f) {
         @unlink($f);
     }

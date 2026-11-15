@@ -1,6 +1,8 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Controller\CategoriaCtl;
+use App\Model\CategoriaModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/CategoriaModel.php';
@@ -20,7 +22,7 @@ class CategoriaCtlTest extends TestCase
             ['id' => 2, 'nome' => 'Salgados'],
         ]);
 
-        $ctl = new CategoriaCtl(null);
+        $ctl = new CategoriaCtl($this->createMock(CategoriaModel::class));
         $ref = new ReflectionProperty(CategoriaCtl::class, 'categoriaModel');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -36,7 +38,7 @@ class CategoriaCtlTest extends TestCase
         $model = $this->createMock(CategoriaModel::class);
         $model->method('listarCategorias')->willReturn([]);
 
-        $ctl = new CategoriaCtl(null);
+        $ctl = new CategoriaCtl($this->createMock(CategoriaModel::class));
         $ref = new ReflectionProperty(CategoriaCtl::class, 'categoriaModel');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -56,7 +58,7 @@ class CategoriaCtlTest extends TestCase
         $model = $this->createMock(CategoriaModel::class);
         $model->method('buscarCategoriaPorId')->willReturn(null);
 
-        $ctl = new CategoriaCtl(null);
+        $ctl = new CategoriaCtl($this->createMock(CategoriaModel::class));
         $ref = new ReflectionProperty(CategoriaCtl::class, 'categoriaModel');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -74,7 +76,7 @@ class CategoriaCtlTest extends TestCase
         $model = $this->createMock(CategoriaModel::class);
         $model->method('buscarCategoriaPorId')->willReturn($categoriaFake);
 
-        $ctl = new CategoriaCtl(null);
+        $ctl = new CategoriaCtl($this->createMock(CategoriaModel::class));
         $ref = new ReflectionProperty(CategoriaCtl::class, 'categoriaModel');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);

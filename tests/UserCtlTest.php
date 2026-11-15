@@ -1,6 +1,9 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Service\ApelidoService;
+use App\Controller\UserCtl;
+use App\Model\UserModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/UserModel.php';
@@ -8,13 +11,22 @@ require_once __DIR__ . '/../controller/UserCtl.php';
 
 class UserCtlTest extends TestCase
 {
+    /** ApelidoService sem banco: apelido sempre válido e livre. */
+    private function apelidoMock(): ApelidoService
+    {
+        $m = $this->createMock(ApelidoService::class);
+        $m->method('validar')->willReturn(null);
+        $m->method('sugerir')->willReturn('joao');
+        return $m;
+    }
+
     // -------------------------------------------------------------------------
     // buscarUsuarioPorId
     // -------------------------------------------------------------------------
 
     public function testBuscarUsuarioComIdZero(): void
     {
-        $ctl = new UserCtl(null);
+        $ctl = new UserCtl($this->createMock(UserModel::class), $this->apelidoMock());
 
         $resultado = $ctl->buscarUsuarioPorId(0);
 
@@ -24,7 +36,7 @@ class UserCtlTest extends TestCase
 
     public function testBuscarUsuarioComIdNegativo(): void
     {
-        $ctl = new UserCtl(null);
+        $ctl = new UserCtl($this->createMock(UserModel::class), $this->apelidoMock());
 
         $resultado = $ctl->buscarUsuarioPorId(-5);
 
@@ -37,7 +49,7 @@ class UserCtlTest extends TestCase
         $model = $this->createMock(UserModel::class);
         $model->method('buscarUserPorId')->willReturn(null);
 
-        $ctl = new UserCtl(null);
+        $ctl = new UserCtl($this->createMock(UserModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(UserCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -59,7 +71,7 @@ class UserCtlTest extends TestCase
         $model = $this->createMock(UserModel::class);
         $model->method('buscarUserPorId')->willReturn($usuarioFake);
 
-        $ctl = new UserCtl(null);
+        $ctl = new UserCtl($this->createMock(UserModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(UserCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -79,7 +91,7 @@ class UserCtlTest extends TestCase
         $model = $this->createMock(UserModel::class);
         $model->expects($this->once())->method('editarUsuario');
 
-        $ctl = new UserCtl(null);
+        $ctl = new UserCtl($this->createMock(UserModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(UserCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -108,7 +120,7 @@ class UserCtlTest extends TestCase
         $model->method('editarUsuario')
               ->willThrowException(new Exception('Erro no banco'));
 
-        $ctl = new UserCtl(null);
+        $ctl = new UserCtl($this->createMock(UserModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(UserCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -121,9 +133,9 @@ class UserCtlTest extends TestCase
         $model = $this->createMock(UserModel::class);
         $model->expects($this->once())
               ->method('editarUsuario')
-              ->with(1, '', '', '', '', '', '', null);
+              ->with(1, '', '', '', '', '', null);
 
-        $ctl = new UserCtl(null);
+        $ctl = new UserCtl($this->createMock(UserModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(UserCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);

@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Config\Auth;
 use App\Model\AdminSecaoModel;
 
 class AdminSecaoCtl
@@ -17,13 +18,7 @@ class AdminSecaoCtl
 
     private function verificarAdmin(): void
     {
-        $userId = (int) getRequestHeader('X-User-Id');
-
-        if (!$userId || !$this->model->isAdmin($userId)) {
-            http_response_code(403);
-            echo json_encode(['mensagem' => 'Acesso negado.'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
+        Auth::requireAdmin();
     }
 
     // ── Seções ────────────────────────────────────────────────

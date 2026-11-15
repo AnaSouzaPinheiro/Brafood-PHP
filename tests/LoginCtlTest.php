@@ -1,6 +1,9 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use App\Service\ApelidoService;
+use App\Controller\LoginCtl;
+use App\Model\LoginModel;
 
 require_once __DIR__ . '/../config/Logger.php';
 require_once __DIR__ . '/../model/LoginModel.php';
@@ -8,13 +11,22 @@ require_once __DIR__ . '/../controller/LoginCtl.php';
 
 class LoginCtlTest extends TestCase
 {
+    /** ApelidoService sem banco: apelido sempre válido e livre. */
+    private function apelidoMock(): ApelidoService
+    {
+        $m = $this->createMock(ApelidoService::class);
+        $m->method('validar')->willReturn(null);
+        $m->method('sugerir')->willReturn('joao');
+        return $m;
+    }
+
     // -------------------------------------------------------------------------
     // login
     // -------------------------------------------------------------------------
 
     public function testLoginSemEmail(): void
     {
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
 
         $resultado = $ctl->login(['email' => '', 'senha' => 'abc123']);
 
@@ -24,7 +36,7 @@ class LoginCtlTest extends TestCase
 
     public function testLoginSemSenha(): void
     {
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
 
         $resultado = $ctl->login(['email' => 'user@example.com', 'senha' => '']);
 
@@ -34,7 +46,7 @@ class LoginCtlTest extends TestCase
 
     public function testLoginSemDados(): void
     {
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
 
         $resultado = $ctl->login([]);
 
@@ -50,7 +62,7 @@ class LoginCtlTest extends TestCase
             'usuario' => ['id' => 1, 'email' => 'user@example.com'],
         ]);
 
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(LoginCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -68,7 +80,7 @@ class LoginCtlTest extends TestCase
             'message' => 'Email ou senha incorretos',
         ]);
 
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(LoginCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -84,7 +96,7 @@ class LoginCtlTest extends TestCase
 
     public function testCadastroSemEmail(): void
     {
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
 
         $resultado = $ctl->cadastro(['email' => '', 'senha' => 'Senha@123']);
 
@@ -94,7 +106,7 @@ class LoginCtlTest extends TestCase
 
     public function testCadastroSemSenha(): void
     {
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
 
         $resultado = $ctl->cadastro(['email' => 'user@example.com', 'senha' => '']);
 
@@ -107,7 +119,7 @@ class LoginCtlTest extends TestCase
         $model = $this->createMock(LoginModel::class);
         $model->method('cadastrar')->willReturn(['success' => true]);
 
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(LoginCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -129,7 +141,7 @@ class LoginCtlTest extends TestCase
             'errors'  => ['Este email já está cadastrado.'],
         ]);
 
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(LoginCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -149,7 +161,7 @@ class LoginCtlTest extends TestCase
 
     public function testResetarSenhaDadosIncompletos(): void
     {
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
 
         $resultado = $ctl->resetarSenha(['token' => 'abc']);
 
@@ -162,7 +174,7 @@ class LoginCtlTest extends TestCase
         $model = $this->createMock(LoginModel::class);
         $model->method('resetarSenha')->willReturn(['success' => true]);
 
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(LoginCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
@@ -182,7 +194,7 @@ class LoginCtlTest extends TestCase
 
     public function testEnviarRecuperacaoSemEmail(): void
     {
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
 
         $resultado = $ctl->enviarRecuperacaoSenha([]);
 
@@ -198,7 +210,7 @@ class LoginCtlTest extends TestCase
             'message' => 'Email não encontrado.',
         ]);
 
-        $ctl = new LoginCtl(null);
+        $ctl = new LoginCtl($this->createMock(LoginModel::class), $this->apelidoMock());
         $ref = new ReflectionProperty(LoginCtl::class, 'model');
         $ref->setAccessible(true);
         $ref->setValue($ctl, $model);
