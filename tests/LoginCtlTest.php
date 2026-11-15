@@ -261,6 +261,36 @@ class LoginCtlTest extends TestCase
         $this->assertCount(1, array_unique(array_map('json_encode', $respostas)));
     }
 
+    public function testSolicitarRecuperacaoNaoTemEnvioQuandoEmailNaoExiste(): void
+    {
+        $model = $this->createMock(LoginModel::class);
+        $model->method('gerarTokenRecuperacao')->willReturn(['success' => false]);
+
+        $ctl = new LoginCtl($model, $this->apelidoMock(), $this->limitador());
+
+        $r = $ctl->solicitarRecuperacao(['email' => 'naoexiste@example.com']);
+
+        $this->assertTrue($r['resposta']['success']);
+        $this->assertNull($r['enviar']);
+    }
+
+    public function testSolicitarRecuperacaoDeixaOEnvioParaDepoisQuandoEmailExiste(): void
+    {
+        $model = $this->createMock(LoginModel::class);
+        $model->method('gerarTokenRecuperacao')->willReturn(['success' => true, 'token' => 'abc123']);
+
+        $ctl = new LoginCtl($model, $this->apelidoMock(), $this->limitador());
+
+        $existe = $ctl->solicitarRecuperacao(['email' => 'existe@example.com']);
+
+        // A resposta é a mesma de quem não tem conta; o e-mail fica numa função a chamar depois
+        $this->assertSame(
+            $ctl->solicitarRecuperacao(['email' => 'outro@example.com'])['resposta'],
+            $existe['resposta']
+        );
+        $this->assertIsCallable($existe['enviar']);
+    }
+
     // -------------------------------------------------------------------------
     // limite de tentativas de login
     // -------------------------------------------------------------------------

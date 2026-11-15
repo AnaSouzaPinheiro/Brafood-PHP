@@ -47,7 +47,7 @@ API REST em PHP e MySQL/MariaDB do BraFood, uma aplicação web de receitas. Ate
 - Painel: CRUD de categorias, subcategorias e seções; vínculo de receitas às seções; upload de imagens; geração de imagens das seções por IA.
 
 **Outros**
-- Newsletter (inscrição e cancelamento) e formulário de contato por e-mail.
+- Newsletter (inscrição e cancelamento) e formulário de contato por e-mail, ambos com limite por IP.
 - Logs por dia e por assunto em `logs/`, com retenção automática.
 
 ## Endpoints
@@ -59,7 +59,7 @@ Todas as rotas ficam em `/routes/<arquivo>.php` (não há roteador central). Cor
 | POST | `login.php` | Não | Login (`email`, `senha`); responde 429 com `Retry-After` após muitas falhas. Se o corpo trouxer `confirmarSenha`, executa o cadastro |
 | POST | `cadastro.php` | Não | Alias do cadastro (`nome`, `apelido`, `email`, `senha`, `confirmarSenha`) |
 | POST | `logout.php` | Bearer (opcional) | Encerra a sessão do aparelho atual |
-| POST | `solicitar_recuperacao.php` | Não | Pede o e-mail de recuperação (`email`); resposta idêntica para e-mails cadastrados ou não |
+| POST | `solicitar_recuperacao.php` | Não | Pede o e-mail de recuperação (`email`); resposta idêntica para e-mails cadastrados ou não, enviada antes do envio do e-mail |
 | POST | `resetar_senha.php` | Não | Redefine a senha (`token`, `senha`, `confirmarSenha`) |
 | GET | `apelido.php?verificar=` / `?sugerir=` | Não | Valida/disponibilidade de apelido ou sugere um |
 | GET | `user.php[?id=]` | Bearer (dono ou admin) | Dados privados do usuário |
@@ -150,6 +150,7 @@ GET /routes/receitas_categoria.php?id=3&ordenar=mais_novos&dificuldades=1,2&temp
 - **Token de sessão:** no login, o servidor gera `bin2hex(random_bytes(32))` (64 caracteres) e grava na tabela `sessoes`, um registro por aparelho. O front envia o token em `Authorization: Bearer`. `Auth::usuarioAutenticado()` resolve o usuário a partir da sessão; `Auth::requireAuth()` responde 401 sem sessão válida; `Auth::requireAdmin()` exige também `is_admin = 1` (403 caso contrário); `Auth::requireOwnership()` limita a ação ao dono do recurso ou a um administrador.
 - **Senhas:** `password_hash` / `password_verify`. Política: mínimo de 8 caracteres, com dígito, letra minúscula, maiúscula e caractere especial.
 - **Recuperação de senha:** token de 40 caracteres hexadecimais com validade de 1 hora, apagado após o uso. `solicitar_recuperacao.php` devolve sempre a mesma resposta ("Se o e-mail estiver cadastrado, enviaremos um link…"), inclusive quando o e-mail não existe, quando o envio falha (o erro vai só para o log) e quando o limite é atingido, para não revelar quem tem conta.
+
 - **Banco:** consultas com prepared statements (PDO).
 - **Autoria:** em receitas, comentários e avaliações, o autor sempre vem do token, nunca do corpo da requisição.
 - **Upload:** valida o arquivo como imagem (`getimagesize`), redimensiona e recomprime, e grava com nome único. Os arquivos ficam em `uploads/`, fora do versionamento.
@@ -174,7 +175,8 @@ BraFood-PHP/
 ├── controller/                    # Regras de negócio e validações
 ├── model/                         # Acesso ao banco
 ├── service/                       # AiService, UploadService, ApelidoService, ReceitaDiffService,
-│                                  # HomeRotacaoService, ImageCleanupService, RateLimiter
+│                                  # HomeRotacaoService, ImageCleanupService, RateLimiter,
+│                                  # RequestThrottle, ClientIp
 ├── migrations/                    # Alterações de schema (SQL), em ordem de data
 ├── tests/                         # PHPUnit (bootstrap em tests/bootstrap.php)
 ├── uploads/                       # Imagens enviadas (não versionado)
@@ -261,7 +263,7 @@ Requisitos: PHP 8.2+ (com PDO MySQL, `mbstring` e GD), MySQL/MariaDB, Composer e
 vendor/bin/phpunit
 ```
 
-A suíte tem 109 testes e **não usa o banco real**: `tests/bootstrap.php` aponta a conexão para um destino inexistente e os controllers recebem models simulados (mocks).
+A suíte tem 123 testes e **não usa o banco real**: `tests/bootstrap.php` aponta a conexão para um destino inexistente e os controllers recebem models simulados (mocks).
 
 ## Deploy
 
